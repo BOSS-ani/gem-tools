@@ -14,6 +14,23 @@
             background-color: #111827;
             color: #F3F4F6;
         }
+        .nav-button {
+            background-color: #374151;
+            color: #D1D5DB;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .nav-button:hover {
+            background-color: #4B5563;
+        }
+        .nav-button.active {
+            background-color: #1F2937;
+            color: #4F46E5;
+            border-color: #4F46E5;
+        }
         .tool-container {
             display: none;
         }
@@ -93,9 +110,15 @@
             <p class="text-gray-400 mt-2">AIを活用したツールで制作ワークフローを加速させます。</p>
         </header>
 
-        <!-- Tool: AI Narration Assistant (now active by default) -->
-        <div id="narration-tool" class="tool-container active">
-            <h2 class="text-2xl font-bold text-center mb-6">AIナレーションアシスタント</h2>
+        <!-- Navigation -->
+        <nav class="flex justify-center gap-4 mb-10">
+            <button id="nav-narration" class="nav-button" data-tool="narration">AIナレーションアシスタント</button>
+            <button id="nav-splitter" class="nav-button" data-tool="splitter">音声分割ツール</button>
+        </nav>
+
+        <!-- Tool: AI Narration Assistant -->
+        <div id="narration-tool" class="tool-container">
+            <!-- Narration assistant content is here -->
              <!-- Step 1: Input Script -->
             <div class="step-card">
                 <div class="flex items-start gap-4">
@@ -157,7 +180,13 @@
             </div>
         </div>
         
-        <!-- Add other tools here in the future -->
+        <!-- Tool: Audio Splitter -->
+        <div id="splitter-tool" class="tool-container">
+             <h2 class="text-2xl font-bold text-center mb-6">音声分割ツール</h2>
+             <div class="step-card text-center">
+                <p class="text-gray-400">このツールは現在開発中です。今後のアップデートにご期待ください。</p>
+             </div>
+        </div>
         
     </div>
 
@@ -169,44 +198,42 @@
     </div>
 
 <script>
-    // --- All previous JavaScript code for narration assistant is here ---
-    // --- It has been slightly modified to fit the hub structure ---
-
-    // Function to parse URL hash and activate the correct tool
     const handleRouting = () => {
-        // Hide all tools first to ensure a clean state
-        document.querySelectorAll('.tool-container').forEach(toolEl => {
-            toolEl.classList.remove('active');
-        });
+        document.querySelectorAll('.tool-container').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-button').forEach(el => el.classList.remove('active'));
 
-        const hash = window.location.hash.slice(1); // Remove '#'
+        const hash = window.location.hash.slice(1);
         const params = new URLSearchParams(hash);
-        const tool = params.get('tool');
+        let tool = params.get('tool');
         const text = params.get('text');
 
-        let toolActivated = false;
+        // Default to narration tool if no tool is specified
+        if (!tool) {
+            tool = 'narration';
+        }
 
-        // Activate tool based on URL hash
-        if (tool === 'narration') {
-            document.getElementById('narration-tool').classList.add('active');
-            if (text) {
+        const targetToolEl = document.getElementById(`${tool}-tool`);
+        const targetNavEl = document.getElementById(`nav-${tool}`);
+
+        if (targetToolEl) {
+            targetToolEl.classList.add('active');
+            if (targetNavEl) {
+                targetNavEl.classList.add('active');
+            }
+            if (tool === 'narration' && text) {
                 const scriptInput = document.getElementById('script-input');
                 scriptInput.value = decodeURIComponent(text);
-                 // Automatically trigger the first step
                 document.getElementById('generate-summary-btn').click();
             }
-            toolActivated = true;
-        } 
-        // Add else if for future tools here
-        // else if (tool === 'audio-splitter') { ... }
-
-        // If no valid tool is found in the hash, or no hash exists, show the default tool.
-        if (!toolActivated) {
+        } else {
+            // Fallback to default if tool in hash is invalid
             document.getElementById('narration-tool').classList.add('active');
+            document.getElementById('nav-narration').classList.add('active');
         }
     };
     
     document.addEventListener('DOMContentLoaded', () => {
+        // --- Narration Assistant Elements ---
         const scriptInput = document.getElementById('script-input');
         const generateSummaryBtn = document.getElementById('generate-summary-btn');
         const processingSection = document.getElementById('processing-section');
@@ -218,6 +245,16 @@
         const downloadBtn = document.getElementById('download-btn');
         const loaderContainer = document.getElementById('loader-container');
         const loaderText = document.getElementById('loader-text');
+        
+        // --- Navigation Elements ---
+        const navButtons = document.querySelectorAll('.nav-button');
+
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const toolName = button.dataset.tool;
+                window.location.hash = `tool=${toolName}`;
+            });
+        });
 
         let audioBlob = null;
         
@@ -350,9 +387,7 @@
             return new Blob([view], { type: 'audio/wav' });
         }
         
-        // Initial setup on page load
         handleRouting();
-        // Listen for hash changes to handle SPA-like navigation
         window.addEventListener('hashchange', handleRouting);
     });
 </script>
