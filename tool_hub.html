@@ -74,7 +74,7 @@
         .main-button:hover {
             background-color: #4338CA;
         }
-        .form-input, textarea {
+        .form-input, textarea, select {
             background-color: #374151;
             border: 1px solid #4B5563;
             border-radius: 0.5rem;
@@ -82,7 +82,7 @@
             padding: 0.75rem;
             width: 100%;
         }
-        .form-input:focus, textarea:focus {
+        .form-input:focus, textarea:focus, select:focus {
             outline: none;
             border-color: #4F46E5;
             box-shadow: 0 0 0 2px #4F46E5;
@@ -97,11 +97,13 @@
         .loader-container {
             position: fixed;
             inset: 0;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0,0,0,0.7);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 50;
+            gap: 1rem;
         }
         .loader {
             width: 48px;
@@ -123,6 +125,18 @@
         audio::-webkit-media-controls-play-button,
         audio::-webkit-media-controls-volume-slider,
         audio::-webkit-media-controls-mute-button { filter: invert(1); }
+        .copy-button {
+            background-color: #374151;
+            border: 1px solid #4B5563;
+            color: #D1D5DB;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .copy-button:hover {
+            background-color: #4B5563;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-8">
@@ -141,212 +155,272 @@
             <button id="nav-splitter" class="nav-button" data-tool="splitter">音声分割</button>
             <button id="nav-prompt" class="nav-button" data-tool="prompt">プロンプト生成</button>
             <button id="nav-content" class="nav-button" data-tool="content">コンテンツ生成</button>
+            <button id="nav-youtube" class="nav-button" data-tool="youtube">YouTube概要欄</button>
         </nav>
-
-        <!-- Tool: AI Narration Assistant -->
-        <div id="narration-tool" class="tool-container">
-            <h2 class="text-2xl font-bold text-center mb-6">AIナレーションアシスタント</h2>
-            <div class="step-card">
-                <div class="flex items-start gap-4">
-                    <div class="step-number">1</div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-2">原稿入力</h3>
-                        <p class="text-gray-400 mb-4">ナレーションの元となる日本語のテキストを貼り付けてください。</p>
-                        <textarea id="script-input" class="h-48 text-base" placeholder="ここにナレーションの原稿を入力..."></textarea>
-                        <button id="generate-summary-btn" class="main-button mt-4">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                            <span>概要と読み方を生成</span>
-                        </button>
+        
+        <div id="tool-contents">
+            <!-- Tool: AI Narration Assistant -->
+            <div id="narration-tool" class="tool-container">
+                <h2 class="text-2xl font-bold text-center mb-6">AIナレーションアシスタント</h2>
+                <div class="step-card">
+                    <div class="flex items-start gap-4">
+                        <div class="step-number">1</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">原稿入力</h3>
+                            <p class="text-gray-400 mb-4">ナレーションの元となる日本語のテキストを貼り付けてください。</p>
+                            <textarea id="narration-input" class="h-40" placeholder="ここにナレーションの原稿を入力..."></textarea>
+                            <button id="generate-reading-btn" class="main-button mt-4">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                <span>概要と読み方を生成</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div id="processing-section" class="hidden">
-                <div class="step-card">
+                <div id="narration-step2" class="step-card hidden">
                     <div class="flex items-start gap-4">
                         <div class="step-number">2</div>
                         <div>
                             <h3 class="text-xl font-bold mb-2">音声概要</h3>
-                            <p class="text-gray-400 mb-4">AIが生成した音声概要です。</p>
-                            <div id="summary-output" class="p-4 bg-[#374151] rounded-lg min-h-[6rem] text-gray-300 whitespace-pre-wrap"></div>
+                            <p class="text-gray-400 mb-4">AIが生成したテキストの要約です。</p>
+                            <textarea id="narration-summary" class="h-32 text-sm" readonly></textarea>
                         </div>
                     </div>
                 </div>
-                <div class="step-card">
+                <div id="narration-step3" class="step-card hidden">
                     <div class="flex items-start gap-4">
                         <div class="step-number">3</div>
                         <div>
                             <h3 class="text-xl font-bold mb-2">読み方の確認・修正</h3>
-                            <p class="text-gray-400 mb-4">漢字の読みが正しいか確認し、必要であればカタカナを直接編集してください。<br>（例：「中山」を「ナカヤマ」→「ナカザン」に修正）</p>
-                            <textarea id="reading-input" class="h-48 text-base"></textarea>
-                            <button id="generate-audio-btn" class="main-button mt-4">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 8.464a5 5 0 000 7.072m2.828 9.9a9 9 0 000-12.728M12 12h.01"></path></svg>
+                            <p class="text-gray-400 mb-4">読み方が違う箇所は、カタカナを直接編集してください。</p>
+                            <textarea id="narration-reading" class="h-40"></textarea>
+                            <button id="convert-to-speech-btn" class="main-button mt-4">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                                 <span>音声に変換</span>
                             </button>
                         </div>
                     </div>
                 </div>
-                <div id="audio-result-section" class="step-card hidden">
+                <div id="narration-step4" class="step-card hidden">
                     <div class="flex items-start gap-4">
                         <div class="step-number">4</div>
                         <div>
                             <h3 class="text-xl font-bold mb-2">プレビューとダウンロード</h3>
-                            <p class="text-gray-400 mb-4">生成された音声をご確認ください。</p>
-                            <audio id="audio-player" controls class="w-full mb-4"></audio>
-                            <button id="download-btn" class="main-button">
+                            <p class="text-gray-400 mb-4">生成された音声を確認し、ダウンロードしてください。</p>
+                            <audio id="narration-audio" controls class="w-full"></audio>
+                            <a id="narration-download" class="main-button mt-4 hidden">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                <span>音声ファイルをダウンロード</span>
+                                <span>ダウンロード (WAV)</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tool: Audio Splitter -->
+            <div id="splitter-tool" class="tool-container">
+                <h2 class="text-2xl font-bold text-center mb-6">音声分割ツール（開発中）</h2>
+                <div class="step-card text-center">
+                    <p class="text-gray-400">このツールは現在開発中です。今後のアップデートをお待ちください。</p>
+                </div>
+            </div>
+
+            <!-- Tool: Prompt Generator -->
+            <div id="prompt-tool" class="tool-container">
+                <h2 class="text-2xl font-bold text-center mb-6">NotebookLM競馬分析プロンプトジェネレーター</h2>
+                <div class="step-card">
+                    <div class="flex items-start gap-4">
+                        <div class="step-number">1</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">分析情報の入力</h3>
+                            <p class="text-gray-400 mb-4">NotebookLMで競馬分析を行うための情報を入力してください。</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="prompt-race-name" class="block text-sm font-medium text-gray-300 mb-1">レース名</label>
+                                    <input type="text" id="prompt-race-name" class="form-input" placeholder="例：日本ダービー">
+                                </div>
+                                <div>
+                                    <label for="prompt-analysis-type" class="block text-sm font-medium text-gray-300 mb-1">分析のタイプ</label>
+                                    <select id="prompt-analysis-type" class="form-input">
+                                        <option value="データ分析・有力馬評価">データ分析・有力馬評価</option>
+                                        <option value="血統分析・穴馬探索">血統分析・穴馬探索</option>
+                                        <option value="調教・状態評価">調教・状態評価</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="prompt-focus-points" class="block text-sm font-medium text-gray-300 mb-1">特に重視する点（複数選択可）</label>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                                        <label class="flex items-center space-x-2"><input type="checkbox" name="focus-point" value="コース適性" class="form-checkbox"><span>コース適性</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" name="focus-point" value="過去のレース実績" class="form-checkbox"><span>レース実績</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" name="focus-point" value="騎手" class="form-checkbox"><span>騎手</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" name="focus-point" value="血統" class="form-checkbox"><span>血統</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" name="focus-point" value="調教内容" class="form-checkbox"><span>調教内容</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" name="focus-point" value="期待値" class="form-checkbox"><span>期待値</span></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="generate-prompt-btn" class="main-button mt-4">プロンプトを生成</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="prompt-result-section" class="step-card hidden">
+                     <div class="flex items-start gap-4">
+                        <div class="step-number">2</div>
+                        <div>
+                             <h3 class="text-xl font-bold mb-2">生成されたプロンプト</h3>
+                            <p class="text-gray-400 mb-4">このプロンプトをNotebookLMにコピー＆ペーストして分析を開始してください。</p>
+                            <div class="relative">
+                                <textarea id="prompt-output" class="h-64 text-sm" readonly></textarea>
+                                <button id="copy-prompt-btn" class="copy-button absolute top-2 right-2">コピー</button>
+                            </div>
+                             <span id="copy-prompt-feedback" class="mt-2 inline-block text-green-400 opacity-0 transition-opacity">コピーしました！</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tool: Content Generator -->
+            <div id="content-tool" class="tool-container">
+                 <h2 class="text-2xl font-bold text-center mb-6">コンテンツジェネレーター</h2>
+                 <div class="step-card">
+                     <div class="flex items-start gap-4">
+                        <div class="step-number">1</div>
+                        <div>
+                             <h3 class="text-xl font-bold mb-2">分析データ入力</h3>
+                            <p class="text-gray-400 mb-4">分析テーマと関連データを入力してください。</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="content-theme" class="block text-sm font-medium text-gray-300 mb-1">分析テーマ</label>
+                                    <input type="text" id="content-theme" class="form-input" placeholder="例：ローズステークス 2025 期待値徹底分析">
+                                </div>
+                                <div>
+                                    <label for="content-data" class="block text-sm font-medium text-gray-300 mb-1">分析データ（テキスト）</label>
+                                    <textarea id="content-data" class="h-48 text-sm" placeholder="箇条書きで分析データを入力..."></textarea>
+                                </div>
+                            </div>
+                            <button id="generate-content-btn" class="main-button mt-4">3種類のコンテンツを生成</button>
+                        </div>
+                    </div>
+                </div>
+                 <div id="content-result-section" class="step-card hidden">
+                     <div class="flex items-start gap-4">
+                        <div class="step-number">2</div>
+                        <div>
+                             <h3 class="text-xl font-bold mb-2">生成されたコンテンツ</h3>
+                            <p class="text-gray-400 mb-4">各コンテンツをコピーして活用してください。</p>
+                            <div class="space-y-6">
+                                <div>
+                                    <h4 class="text-lg font-bold mb-2 text-indigo-400">1. ウェブコンテンツ (HTML)</h4>
+                                    <div class="relative">
+                                        <textarea id="content-html-output" class="h-40 text-sm" readonly></textarea>
+                                        <button class="copy-button absolute top-2 right-2" data-target="content-html-output">コピー</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold mb-2 text-indigo-400">2. ナレーション原稿</h4>
+                                     <div class="relative">
+                                        <textarea id="content-script-output" class="h-40 text-sm" readonly></textarea>
+                                        <button class="copy-button absolute top-2 right-2" data-target="content-script-output">コピー</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold mb-2 text-indigo-400">3. 概要テキスト</h4>
+                                     <div class="relative">
+                                        <textarea id="content-summary-output" class="h-40 text-sm" readonly></textarea>
+                                        <button class="copy-button absolute top-2 right-2" data-target="content-summary-output">コピー</button>
+                                    </div>
+                                </div>
+                            </div>
+                             <span id="copy-content-feedback" class="mt-2 inline-block text-green-400 opacity-0 transition-opacity">コピーしました！</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tool: YouTube Description Generator -->
+            <div id="youtube-tool" class="tool-container">
+                 <h2 class="text-2xl font-bold text-center mb-6">YouTube概要欄 自動生成ツール</h2>
+                <div class="step-card">
+                    <div class="flex items-start gap-4">
+                        <div class="step-number">1</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">動画情報の入力</h3>
+                            <p class="text-gray-400 mb-4">AIが概要欄を生成するために、動画のキーポイントを入力してください。</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="yt-race-name" class="block text-sm font-medium text-gray-300 mb-1">レース名</label>
+                                    <input type="text" id="yt-race-name" class="form-input" placeholder="例：有馬記念">
+                                </div>
+                                <div>
+                                    <label for="yt-key-point" class="block text-sm font-medium text-gray-300 mb-1">レースのキーポイント</label>
+                                    <input type="text" id="yt-key-point" class="form-input" placeholder="動画内で強調したレースの鍵（例：波乱のハンデ戦）">
+                                </div>
+                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="yt-horse1" class="block text-sm font-medium text-gray-300 mb-1">注目馬1 (本命)</label>
+                                        <input type="text" id="yt-horse1" class="form-input" placeholder="動画の本命馬">
+                                    </div>
+                                    <div>
+                                        <label for="yt-horse2" class="block text-sm font-medium text-gray-300 mb-1">注目馬2 (対抗)</label>
+                                        <input type="text" id="yt-horse2" class="form-input" placeholder="動画の対抗馬">
+                                    </div>
+                                     <div>
+                                        <label for="yt-darkhorse" class="block text-sm font-medium text-gray-300 mb-1">伏兵馬</label>
+                                        <input type="text" id="yt-darkhorse" class="form-input" placeholder="動画の穴馬">
+                                    </div>
+                                    <div>
+                                        <label for="yt-otherhorse" class="block text-sm font-medium text-gray-300 mb-1">その他の注目馬</label>
+                                        <input type="text" id="yt-otherhorse" class="form-input" placeholder="その他に言及した馬">
+                                    </div>
+                                </div>
+                                 <div>
+                                    <label for="yt-analysis-points" class="block text-sm font-medium text-gray-300 mb-1">分析ポイント (箇条書きで3つ)</label>
+                                    <textarea id="yt-analysis-points" class="h-24 text-sm" placeholder="例：&#10;・過去データからは内枠有利&#10;・〇〇産駒の好走率が高い&#10;・前走上がり最速馬に注目"></textarea>
+                                </div>
+                                <div>
+                                     <label for="yt-must-include" class="block text-sm font-medium text-gray-300 mb-1">概要欄に必ず含めたい内容</label>
+                                     <textarea id="yt-must-include" class="h-24 text-sm" placeholder="この動画ならではのメッセージや宣伝などを入力..."></textarea>
+                                </div>
+                            </div>
+                             <button id="generate-youtube-btn" class="main-button mt-4">
+                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>タイトルと概要欄を生成</span>
                             </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Tool: Audio Splitter -->
-        <div id="splitter-tool" class="tool-container">
-             <h2 class="text-2xl font-bold text-center mb-6">音声分割ツール</h2>
-             <div class="step-card text-center">
-                <p class="text-gray-400">このツールは現在開発中です。今後のアップデートにご期待ください。</p>
-             </div>
-        </div>
-
-        <!-- Tool: Prompt Generator -->
-        <div id="prompt-tool" class="tool-container">
-            <h2 class="text-2xl font-bold text-center mb-6">NotebookLM競馬分析プロンプトジェネレーター</h2>
-            <div class="step-card">
-                <div class="flex items-start gap-4">
-                    <div class="step-number">1</div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-2">レース情報の入力</h3>
-                        <p class="text-gray-400 mb-4">分析したいレースの基本情報を入力してください。</p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="race-name" class="block text-sm font-medium text-gray-300 mb-1">レース名</label>
-                                <input type="text" id="race-name" class="form-input" placeholder="例：有馬記念">
-                            </div>
-                            <div>
-                                <label for="race-course" class="block text-sm font-medium text-gray-300 mb-1">競馬場</label>
-                                <input type="text" id="race-course" class="form-input" placeholder="例：中山競馬場">
-                            </div>
-                            <div>
-                                <label for="race-distance" class="block text-sm font-medium text-gray-300 mb-1">距離</label>
-                                <input type="text" id="race-distance" class="form-input" placeholder="例：芝2500m">
-                            </div>
-                            <div>
-                                <label for="race-condition" class="block text-sm font-medium text-gray-300 mb-1">想定馬場状態</label>
-                                <input type="text" id="race-condition" class="form-input" placeholder="例：良馬場">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="step-card">
-                <div class="flex items-start gap-4">
-                    <div class="step-number">2</div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-2">分析の視点を選択</h3>
-                        <p class="text-gray-400 mb-4">プロンプトに含めたい分析の視点を選択してください。（複数選択可）</p>
-                        <div id="analysis-perspectives" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="step-card">
-                <div class="flex items-start gap-4">
-                    <div class="step-number">3</div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-2">プロンプト生成</h3>
-                        <p class="text-gray-400 mb-4">下のボタンを押して、NotebookLM用の分析プロンプトを生成します。</p>
-                        <button id="generate-prompt-btn" class="main-button">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 0l-3-3m3 3l-3 3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            <span>プロンプトを生成</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div id="prompt-result-section" class="step-card hidden">
-                <div class="flex items-start gap-4">
-                    <div class="step-number">4</div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-2">生成されたプロンプト</h3>
-                        <p class="text-gray-400 mb-4">生成されたプロンプトをコピーして、NotebookLMなどで活用してください。</p>
-                        <textarea id="prompt-output" class="h-64 text-sm" readonly></textarea>
-                        <button id="copy-prompt-btn" class="main-button mt-4">
-                           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                           <span>クリップボードにコピー</span>
-                        </button>
-                        <span id="copy-feedback" class="ml-4 text-green-400 opacity-0 transition-opacity">コピーしました！</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tool: Content Generator -->
-        <div id="content-tool" class="tool-container">
-            <h2 class="text-2xl font-bold text-center mb-6">汎用コンテンツ生成プロンプト</h2>
-            <div class="step-card">
-                <div class="flex items-start gap-4">
-                    <div class="step-number">1</div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-2">入力セクション</h3>
-                        <p class="text-gray-400 mb-4">分析テーマと元となるデータを入力してください。</p>
-                        <div class="space-y-4">
-                            <div>
-                                <label for="content-theme" class="block text-sm font-medium text-gray-300 mb-1">分析テーマ</label>
-                                <input type="text" id="content-theme" class="form-input" placeholder="例：ローズステークス 2025 期待値徹底分析">
-                            </div>
-                            <div>
-                                <label for="content-data" class="block text-sm font-medium text-gray-300 mb-1">分析データ (テキスト)</label>
-                                <textarea id="content-data" class="h-64 text-sm" placeholder="レース概要、コース分析、血統分析、有力馬評価などを入力..."></textarea>
-                            </div>
-                        </div>
-                         <button id="generate-content-btn" class="main-button mt-4">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            <span>全コンテンツを生成</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div id="content-result-section" class="step-card hidden">
-                <div class="flex items-start gap-4">
-                    <div class="step-number">2</div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-2">出力セクション</h3>
-                        <p class="text-gray-400 mb-4">AIによって生成された各種コンテンツです。</p>
-                        <div class="space-y-6">
-                             <div>
-                                <h4 class="text-lg font-bold mb-2 text-indigo-400">グラフ用データ (JSON)</h4>
-                                <textarea id="content-json-output" class="h-48 text-xs" readonly></textarea>
-                            </div>
-                             <div>
-                                <h4 class="text-lg font-bold mb-2 text-indigo-400">ナレーション原稿</h4>
-                                <textarea id="content-script-output" class="h-48 text-sm" readonly></textarea>
-                            </div>
-                             <div>
-                                <h4 class="text-lg font-bold mb-2 text-indigo-400">概要テキスト</h4>
-                                <textarea id="content-summary-output" class="h-32 text-sm" readonly></textarea>
-                            </div>
-                            <div>
-                                <h4 class="text-lg font-bold mb-2 text-indigo-400">ウェブコンテンツ (HTML)</h4>
-                                <p class="text-gray-400 mb-2 text-sm">下のボタンをクリックすると、生成されたHTMLを新しいタブでプレビューします。</p>
-                                 <button id="preview-html-btn" class="main-button">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    <span>HTMLをプレビュー</span>
-                                </button>
+                 <div id="youtube-result-section" class="step-card hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="step-number">2</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">生成されたコンテンツ</h3>
+                            <p class="text-gray-400 mb-4">生成されたタイトルと概要欄をコピーして、YouTubeで活用してください。</p>
+                            <div class="space-y-6">
+                                 <div>
+                                    <h4 class="text-lg font-bold mb-2 text-indigo-400">YouTube動画タイトル案</h4>
+                                    <div class="relative">
+                                        <textarea id="youtube-title-output" class="h-20 text-base" readonly></textarea>
+                                        <button class="copy-button absolute top-2 right-2" data-target="youtube-title-output">コピー</button>
+                                    </div>
+                                </div>
+                                 <div>
+                                    <h4 class="text-lg font-bold mb-2 text-indigo-400">YouTube概要欄</h4>
+                                     <div class="relative">
+                                        <textarea id="youtube-desc-output" class="h-96 text-sm" readonly></textarea>
+                                        <button class="copy-button absolute top-2 right-2" data-target="youtube-desc-output">コピー</button>
+                                    </div>
+                                </div>
+                                 <span id="copy-youtube-feedback" class="mt-2 inline-block text-green-400 opacity-0 transition-opacity">コピーしました！</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
     </div>
 
-    <div id="loader-container" class="loader-container hidden">
-        <div class="bg-[#1F2937] p-8 rounded-lg flex flex-col items-center gap-4">
-            <div class="loader"></div>
-            <p id="loader-text" class="text-lg font-semibold">処理中...</p>
-        </div>
+     <div id="loader-container" class="loader-container hidden">
+        <div class="loader"></div>
+        <p id="loader-text" class="text-lg font-semibold">処理中...</p>
     </div>
 
 <script>
@@ -354,228 +428,266 @@
         // --- Common Elements & Functions ---
         const loaderContainer = document.getElementById('loader-container');
         const loaderText = document.getElementById('loader-text');
-
-        const showLoader = (text) => {
+        const showLoader = (text = '処理中...') => {
             loaderText.textContent = text;
             loaderContainer.classList.remove('hidden');
         };
-        const hideLoader = () => {
-            loaderContainer.classList.add('hidden');
-        };
+        const hideLoader = () => { loaderContainer.classList.add('hidden'); };
 
         const handleRouting = () => {
             document.querySelectorAll('.tool-container').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-button').forEach(el => el.classList.remove('active'));
-
             const hash = window.location.hash.slice(1);
-            const params = new URLSearchParams(hash);
-            let tool = params.get('tool');
-            
-            if (!['narration', 'splitter', 'prompt', 'content'].includes(tool)) {
-                tool = 'narration';
-            }
-
+            let tool = new URLSearchParams(hash).get('tool');
+            const validTools = ['narration', 'splitter', 'prompt', 'content', 'youtube'];
+            if (!validTools.includes(tool)) { tool = 'narration'; }
             const targetToolEl = document.getElementById(`${tool}-tool`);
             const targetNavEl = document.getElementById(`nav-${tool}`);
-
             if (targetToolEl && targetNavEl) {
                 targetToolEl.classList.add('active');
                 targetNavEl.classList.add('active');
-            } else {
-                // Fallback to default if something is wrong
-                document.getElementById('narration-tool').classList.add('active');
-                document.getElementById('nav-narration').classList.add('active');
             }
         };
-
-        // --- Navigation ---
         document.querySelectorAll('.nav-button').forEach(button => {
+            button.addEventListener('click', () => { window.location.hash = `tool=${button.dataset.tool}`; });
+        });
+        window.addEventListener('hashchange', handleRouting);
+        handleRouting(); // Initial load
+
+        // --- Generic Copy Function ---
+        const setupCopyButton = (button, feedbackEl) => {
             button.addEventListener('click', () => {
-                window.location.hash = `tool=${button.dataset.tool}`;
+                const targetId = button.dataset.target;
+                const targetTextarea = document.getElementById(targetId);
+                targetTextarea.select();
+                try {
+                    document.execCommand('copy');
+                    if (feedbackEl) {
+                        feedbackEl.classList.remove('opacity-0');
+                        setTimeout(() => { feedbackEl.classList.add('opacity-0'); }, 2000);
+                    }
+                } catch (err) {
+                    alert('コピーに失敗しました。');
+                }
             });
-        });
-
-        // --- Narration Assistant ---
-        const scriptInput = document.getElementById('script-input');
-        const generateSummaryBtn = document.getElementById('generate-summary-btn');
-        const processingSection = document.getElementById('processing-section');
-        const summaryOutput = document.getElementById('summary-output');
-        const readingInput = document.getElementById('reading-input');
-        const generateAudioBtn = document.getElementById('generate-audio-btn');
-        const audioResultSection = document.getElementById('audio-result-section');
-        const audioPlayer = document.getElementById('audio-player');
-        const downloadBtn = document.getElementById('download-btn');
-        let audioBlob = null;
+        };
         
-        const getSummaryAndReading = async (text) => {
-            showLoader('概要と読み方を生成中...');
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: `以下のテキストについて、要約と、読み方を確認するためのカタカナ全文をJSON形式で生成してください。\n\n---\n\n${text}` }] }],
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "summary": { "type": "STRING" }, "reading": { "type": "STRING" } }, required: ["summary", "reading"] } }
-            };
-            try {
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
-                const result = await response.json();
-                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!jsonText) { throw new Error("APIから有効な応答がありませんでした。"); }
-                const parsedData = JSON.parse(jsonText);
-                summaryOutput.textContent = parsedData.summary;
-                readingInput.value = parsedData.reading;
-                processingSection.classList.remove('hidden');
-            } catch (error) {
-                console.error("Error fetching summary/reading:", error);
-                alert(`エラーが発生しました: ${error.message}`);
-            } finally { hideLoader(); }
-        };
-        const generateNarration = async (text) => {
-            showLoader('音声を生成中...');
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ parts: [{ text: text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }, };
-            try {
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
-                const result = await response.json();
-                const part = result?.candidates?.[0]?.content?.parts?.[0];
-                const audioData = part?.inlineData?.data;
-                const mimeType = part?.inlineData?.mimeType;
-                if (audioData && mimeType && mimeType.startsWith("audio/")) {
-                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
-                    if(!sampleRateMatch) throw new Error("Sample rate not found in mime type");
-                    const sampleRate = parseInt(sampleRateMatch[1], 10);
-                    const pcmData = base64ToArrayBuffer(audioData);
-                    const pcm16 = new Int16Array(pcmData);
-                    audioBlob = pcmToWav(pcm16, sampleRate);
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    audioPlayer.src = audioUrl;
-                    audioResultSection.classList.remove('hidden');
-                } else { throw new Error("音声データが見つかりませんでした。"); }
-            } catch (error) {
-                console.error("Error generating audio:", error);
-                alert(`エラーが発生しました: ${error.message}`);
-            } finally { hideLoader(); }
-        };
-        if(generateSummaryBtn) generateSummaryBtn.addEventListener('click', () => {
-            const script = scriptInput.value.trim();
-            if (script) { getSummaryAndReading(script); } else { alert('ナレーションの原稿を入力してください。'); }
-        });
-        if(generateAudioBtn) generateAudioBtn.addEventListener('click', () => {
-            const readingText = readingInput.value.trim();
-            if (readingText) { generateNarration(readingText); } else { alert('読み方を修正するテキストがありません。'); }
-        });
-        if(downloadBtn) downloadBtn.addEventListener('click', () => {
-            if (audioBlob) {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(audioBlob);
-                a.download = 'narration.wav';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } else { alert('ダウンロードする音声ファイルがありません。'); }
-        });
+        // --- AI Narration Assistant ---
+        const narrationInput = document.getElementById('narration-input');
+        const generateReadingBtn = document.getElementById('generate-reading-btn');
+        const narrationSummary = document.getElementById('narration-summary');
+        const narrationReading = document.getElementById('narration-reading');
+        const convertToSpeechBtn = document.getElementById('convert-to-speech-btn');
+        const narrationAudio = document.getElementById('narration-audio');
+        const narrationDownload = document.getElementById('narration-download');
 
-        // --- Prompt Generator ---
-        const raceNameInput = document.getElementById('race-name');
-        const raceCourseInput = document.getElementById('race-course');
-        const raceDistanceInput = document.getElementById('race-distance');
-        const raceConditionInput = document.getElementById('race-condition');
-        const perspectivesContainer = document.getElementById('analysis-perspectives');
+        if (generateReadingBtn) {
+            generateReadingBtn.addEventListener('click', async () => {
+                const text = narrationInput.value.trim();
+                if (!text) { alert('原稿を入力してください。'); return; }
+                showLoader('概要と読み方を生成中...');
+                const prompt = `以下の日本語テキストについて、1. 要約、2. 全ての漢字を含む単語の読み方をカタカナで示した全文、の2点を生成してください。\n\nテキスト：\n${text}\n\n出力は以下のJSON形式でお願いします:\n{\n  "summary": "ここに要約",\n  "reading": "ここにカタカナ交じりの全文"\n}`;
+                try {
+                    const result = await callGeminiAPI(prompt, true);
+                    narrationSummary.value = result.summary;
+                    narrationReading.value = result.reading;
+                    ['narration-step2', 'narration-step3'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+                } catch (error) {
+                    alert(`生成エラー: ${error.message}`);
+                } finally { hideLoader(); }
+            });
+        }
+        if (convertToSpeechBtn) {
+            convertToSpeechBtn.addEventListener('click', async () => {
+                const text = narrationReading.value.trim();
+                if (!text) { alert('読み方を入力してください。'); return; }
+                showLoader('音声に変換中...');
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text }] }],
+                    generationConfig: { responseModalities: ["AUDIO"] },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+                try {
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                    const result = await response.json();
+                    const part = result.candidates?.[0]?.content?.parts?.[0];
+                    if (part?.inlineData?.data) {
+                        const pcmData = base64ToArrayBuffer(part.inlineData.data);
+                        const pcm16 = new Int16Array(pcmData);
+                        const sampleRateMatch = part.inlineData.mimeType.match(/rate=(\d+)/);
+                        const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+                        const wavBlob = pcmToWav(pcm16, sampleRate);
+                        const audioUrl = URL.createObjectURL(wavBlob);
+                        narrationAudio.src = audioUrl;
+                        narrationDownload.href = audioUrl;
+                        narrationDownload.download = 'narration.wav';
+                        narrationDownload.classList.remove('hidden');
+                        document.getElementById('narration-step4').classList.remove('hidden');
+                    } else { throw new Error('音声データがありません。'); }
+                } catch (error) {
+                    alert(`音声変換エラー: ${error.message}`);
+                } finally { hideLoader(); }
+            });
+        }
+
+        // --- NotebookLM Prompt Generator ---
         const generatePromptBtn = document.getElementById('generate-prompt-btn');
-        const promptResultSection = document.getElementById('prompt-result-section');
-        const promptOutput = document.getElementById('prompt-output');
-        const copyPromptBtn = document.getElementById('copy-prompt-btn');
-        const copyFeedback = document.getElementById('copy-feedback');
-        const perspectives = ['コース適性', '血統', '騎手', '調教', '過去データ', '近走内容', '展開予測', '馬体重'];
-        if(perspectivesContainer) perspectives.forEach(p => {
-            perspectivesContainer.innerHTML += `
-                <label class="flex items-center space-x-2 text-gray-300 cursor-pointer">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 bg-gray-700 border-gray-600 rounded text-indigo-500 focus:ring-indigo-500" value="${p}">
-                    <span>${p}</span>
-                </label>
-            `;
-        });
-        if(generatePromptBtn) generatePromptBtn.addEventListener('click', () => {
-            const raceName = raceNameInput.value.trim();
-            const raceCourse = raceCourseInput.value.trim();
-            const raceDistance = raceDistanceInput.value.trim();
-            const raceCondition = raceConditionInput.value.trim();
-            if (!raceName || !raceCourse || !raceDistance || !raceCondition) {
-                alert('すべてのレース情報を入力してください。');
-                return;
-            }
-            const selectedPerspectives = Array.from(perspectivesContainer.querySelectorAll('input:checked')).map(el => el.value);
-            if (selectedPerspectives.length === 0) {
-                alert('分析の視点を1つ以上選択してください。');
-                return;
-            }
-            const prompt = `# 指示\nあなたは優秀な競馬分析家です。以下の##レース情報と##分析の視点を基に、NotebookLM用の詳細な分析プロンプトを生成してください。\n\n# NotebookLM用プロンプト\n\n## レース情報\n- レース名: ${raceName}\n- 開催場所: ${raceCourse}\n- 距離: ${raceDistance}\n- 想定馬場状態: ${raceCondition}\n\n## 分析の視点\n${selectedPerspectives.map(p => `- ${p}`).join('\n')}\n\n## 分析プロンプト\n上記のレース情報と分析の視点を踏まえ、有力馬、対抗馬、穴馬候補をそれぞれ3頭ずつ挙げ、その根拠を詳細に分析してください。特に、各視点がどのように馬の評価に影響するのかを具体的に論じてください。最終的な結論として、期待値の高い買い目（例：馬連、3連複）も提案してください。`.trim();
-            promptOutput.value = prompt;
-            promptResultSection.classList.remove('hidden');
-        });
-        if(copyPromptBtn) copyPromptBtn.addEventListener('click', () => {
-            promptOutput.select();
-            try {
-                document.execCommand('copy');
-                copyFeedback.classList.remove('opacity-0');
-                setTimeout(() => { copyFeedback.classList.add('opacity-0'); }, 2000);
-            } catch (err) {
-                console.error('クリップボードへのコピーに失敗しました: ', err);
-                alert('コピーに失敗しました。');
-            }
-        });
+        if (generatePromptBtn) {
+            generatePromptBtn.addEventListener('click', () => {
+                const raceName = document.getElementById('prompt-race-name').value.trim();
+                const analysisType = document.getElementById('prompt-analysis-type').value;
+                const focusPoints = Array.from(document.querySelectorAll('input[name="focus-point"]:checked')).map(el => el.value);
+                if (!raceName) { alert('レース名を入力してください。'); return; }
 
+                const prompt = `あなたは優秀な競馬分析アシスタントです。
+NotebookLMにアップロードされた複数のソース（競馬ニュース、過去データ、調教映像の文字起こしなど）を横断的に分析し、以下の指示に従って「${raceName}」の分析レポートを作成してください。
+
+# 分析の目的
+${analysisType}
+
+# 分析の視点
+特に以下の点に重点を置いて、各ソースから関連情報を抽出し、統合・考察してください。
+- ${focusPoints.join('\n- ')}
+
+# 出力形式
+- まず、各分析視点に基づいた詳細な考察を記述してください。
+- 次に、考察から導き出される注目馬を3頭挙げ、その理由を明確に説明してください。
+- 最後に、分析全体の結論を簡潔にまとめてください。
+
+さあ、分析を開始してください。`;
+                const promptOutput = document.getElementById('prompt-output');
+                promptOutput.value = prompt;
+                document.getElementById('prompt-result-section').classList.remove('hidden');
+            });
+        }
+        setupCopyButton(document.getElementById('copy-prompt-btn'), document.getElementById('copy-prompt-feedback'));
+        
         // --- Content Generator ---
-        const contentThemeInput = document.getElementById('content-theme');
-        const contentDataInput = document.getElementById('content-data');
         const generateContentBtn = document.getElementById('generate-content-btn');
-        const contentResultSection = document.getElementById('content-result-section');
-        const contentJsonOutput = document.getElementById('content-json-output');
-        const contentScriptOutput = document.getElementById('content-script-output');
-        const contentSummaryOutput = document.getElementById('content-summary-output');
-        const previewHtmlBtn = document.getElementById('preview-html-btn');
-        let generatedHtmlContent = '';
-        if(generateContentBtn) generateContentBtn.addEventListener('click', async () => {
-            const theme = contentThemeInput.value.trim();
-            const data = contentDataInput.value.trim();
-            if (!theme || !data) {
-                alert('分析テーマと分析データの両方を入力してください。');
-                return;
-            }
-            showLoader('全コンテンツを生成中...');
-            const userPrompt = `あなたは、専門的な分析コンテンツを、ウェブ、テキスト、音声概要の3つの形式でアウトプットするAIアシスタントです。以下の入力情報に基づいて、指定された形式で出力を作成してください。\n\n【入力セクション】\n1. 分析テーマ:\n${theme}\n\n2. 分析データ (テキスト):\n${data}\n\n3. グラフ用データ (JSON形式) の自動生成:\n2. 分析データ (テキスト):の内容を解析し、必要に応じてウェブ検索で補足的な統計データ（例：血統のシェア、コースの枠順有利不利の具体的な数値など）を収集してください。その上で、以下のJSON構造に従ってグラフ用のデータをあなた自身で生成してください。\n- doughnutChart: 分析データ内の主要な要素の割合を示してください。（例：血統の割合など）\n- bubbleChart: 分析データに登場する複数の比較対象（例：有力馬）を、2つの軸（例：瞬発力、スタミナ）とサイズ（例：期待度）で評価し、数値化してください。\n- barChart: 分析データ内のカテゴリ別データを示してください。（例：枠順別データなど）\n\n【出力セクション】\nあなたは以下の全ての項目を単一のJSONオブジェクトとして出力しなければなりません。\n\n{\n  "graphData": {\n    "doughnutChart": { "title": "【ここにグラフタイトル】", "labels": ["【要素1】", "【要素2】", "【その他】"], "data": ["[数値1]", "[数値2]", "[数値3]"] },\n    "bubbleChart": { "title": "【ここにグラフタイトル】", "datasets": [ { "label": "【対象A】", "data": [{"x": "[X軸の値]", "y": "[Y軸の値]", "r": "[サイズ]"}] }, { "label": "【対象B】", "data": [{"x": "[X軸の値]", "y": "[Y軸の値]", "r": "[サイズ]"}] } ], "xLabel": "【X軸ラベル】", "yLabel": "【Y軸ラベル】" },\n    "barChart": { "title": "【ここにグラフタイトル】", "labels": ["【カテゴリ1】", "【カテゴリ2】", "【カテゴリ3】", "【カテゴリ4】"], "data": ["[数値1]", "[数値2]", "[数値3]", "[数値4]"], "label": "【データラベル】" }\n  },\n  "webContent": "ここに、入力された情報に基づき、rose_stakes_2025.htmlのモダンで視覚的なデザインを踏襲した、縦スクロール形式の単一HTMLファイルを生成してください。すべてのCSSとJavaScriptはHTMLファイル内に含めてください。",\n  "narrationScript": "ここに、入力情報を基に、約1分半で読める、聴き手を引き込むようなナレーション原稿を作成してください。final_audio_script.mdの構成（導入→本題→結論→締め）と語り口を参考にしてください。",\n  "summaryText": "ここに、コンテンツ全体の要点を箇条書きで簡潔にまとめたサマリーテキストを作成してください。"\n}`;
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ parts: [{ text: userPrompt }] }], tools: [{"google_search": {}}], generationConfig: { responseMimeType: "application/json", } };
-            try {
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) { throw new Error(`API Error: ${response.status}`); }
-                const result = await response.json();
-                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!jsonText) { throw new Error("APIから有効な応答がありませんでした。"); }
-                const parsedData = JSON.parse(jsonText);
-                contentJsonOutput.value = JSON.stringify(parsedData.graphData, null, 2);
-                contentScriptOutput.value = parsedData.narrationScript;
-                contentSummaryOutput.value = parsedData.summaryText;
-                generatedHtmlContent = parsedData.webContent;
-                contentResultSection.classList.remove('hidden');
-            } catch (error) {
-                console.error("Error generating content:", error);
-                alert(`コンテンツの生成中にエラーが発生しました: ${error.message}`);
-            } finally { hideLoader(); }
-        });
-        if(previewHtmlBtn) previewHtmlBtn.addEventListener('click', () => {
-            if (generatedHtmlContent) {
-                const previewWindow = window.open();
-                previewWindow.document.write(generatedHtmlContent);
-                previewWindow.document.close();
-            } else {
-                alert('プレビューするHTMLコンテンツがありません。');
-            }
-        });
+        if (generateContentBtn) {
+            generateContentBtn.addEventListener('click', async () => {
+                const theme = document.getElementById('content-theme').value.trim();
+                const data = document.getElementById('content-data').value.trim();
+                if (!theme || !data) { alert('分析テーマとデータを入力してください。'); return; }
+                showLoader('コンテンツを生成中...');
+                const prompt = `あなたは、専門的な分析コンテンツを、ウェブ、テキスト、音声概要の3つの形式でアウトプットするAIアシスタントです。以下の入力情報に基づいて、指定された形式で出力を作成してください。
 
+【入力セクション】
+1. 分析テーマ:
+${theme}
+2. 分析データ (テキスト):
+${data}
+3. グラフ用データ (JSON形式) の自動生成: 2の分析データを解析し、必要に応じてウェブ検索で補足的な統計データを収集し、以下のJSON構造に従ってグラフ用データをあなた自身で生成してください。
+{ "doughnutChart": { ... }, "bubbleChart": { ... }, "barChart": { ... } }
+
+【出力セクション】
+1. ウェブコンテンツの生成 (output.html): 入力に基づき、モダンで視覚的なデザインの単一HTMLファイルを生成。
+2. ナレーション原稿の生成 (script.md): 約1分半で読めるナレーション原稿を作成。
+3. 概要テキストの生成 (summary.md): 要点を箇条書きでまとめたサマリーを作成。
+
+上記の指示に従い、3つの出力を単一のJSONオブジェクトとして返してください。JSONのキーは "html", "script", "summary" としてください。`;
+                try {
+                    const result = await callGeminiAPI(prompt, true, true);
+                    document.getElementById('content-html-output').value = result.html;
+                    document.getElementById('content-script-output').value = result.script;
+                    document.getElementById('content-summary-output').value = result.summary;
+                    document.getElementById('content-result-section').classList.remove('hidden');
+                } catch (error) {
+                    alert(`コンテンツ生成エラー: ${error.message}`);
+                } finally { hideLoader(); }
+            });
+        }
+        document.querySelectorAll('#content-result-section .copy-button').forEach(button => {
+             setupCopyButton(button, document.getElementById('copy-content-feedback'));
+        });
+        
+        // --- YouTube Description Generator ---
+        const generateYoutubeBtn = document.getElementById('generate-youtube-btn');
+        if (generateYoutubeBtn) {
+            generateYoutubeBtn.addEventListener('click', async () => {
+                const inputs = {
+                    raceName: document.getElementById('yt-race-name').value.trim(),
+                    keyPoint: document.getElementById('yt-key-point').value.trim(),
+                    horse1: document.getElementById('yt-horse1').value.trim(),
+                    horse2: document.getElementById('yt-horse2').value.trim(),
+                    darkhorse: document.getElementById('yt-darkhorse').value.trim(),
+                    otherhorse: document.getElementById('yt-otherhorse').value.trim(),
+                    analysisPoints: document.getElementById('yt-analysis-points').value.trim(),
+                    mustInclude: document.getElementById('yt-must-include').value.trim(),
+                };
+                if (!inputs.raceName || !inputs.keyPoint || !inputs.horse1 || !inputs.horse2 || !inputs.darkhorse || !inputs.otherhorse || !inputs.analysisPoints) {
+                    alert('「必ず含めたい内容」以外のすべての項目を入力してください。'); return;
+                }
+                showLoader('タイトルと概要欄を生成中...');
+                const prompt = `あなたは「ウマキんグ公認応援ch」という競馬予想チャンネルの優秀なアシスタントです。以下の##入力情報と##テンプレートを基に、魅力的でクリックしたくなるようなYouTubeのタイトルと概要欄を生成してください。Web検索を活用して、[格付け]、[年]、[コースの特徴]、[レースのキャッチコピー]を自動で補完してください。
+
+## 入力情報
+- レース名: ${inputs.raceName}
+- レースのキーポイント: ${inputs.keyPoint}
+- 注目馬1(本命): ${inputs.horse1}
+- 注目馬2(対抗): ${inputs.horse2}
+- 伏兵馬: ${inputs.darkhorse}
+- その他の注目馬: ${inputs.otherhorse}
+- 分析ポイント:\n${inputs.analysisPoints}
+- 概要欄に必ず含めたい内容: ${inputs.mustInclude || '特になし'}
+
+## テンプレート
+### YouTube動画タイトル案
+【[レース名] [年] 最終結論】ナーツごんにゃ中井の「期待値」理論で導く！[レースのキーポイント]で本当に狙うべき馬は…
+
+### YouTube概要欄
+🔥 動画の概要
+皆さん、こんにちは！ウマキング公認応援chです！
+今週は、[レースのキャッチコピー]、[格付け] [レース名]を徹底的に予想診断していきます！
+舞台は[コースの特徴]。[レースの難易度]を、我々はナーツごんにゃ中井さんが提唱する「期待値」の視点から徹底解剖！
+[注目馬1]、[注目馬2]の二強対決ムードですが、このタフな条件でこそ期待値の高い穴馬が存在するはず！
+${inputs.mustInclude ? `\n${inputs.mustInclude}\n` : ''}
+この動画を見れば、あなたの[レース名]予想が新たな次元へ！ぜひ最後までご覧ください！
+
+(以下、定型文テンプレートは省略)
+
+## 出力形式
+あなたは以下の項目を単一のJSONオブジェクトとして出力してください。
+{
+  "title": "（生成されたタイトル）",
+  "description": "（生成された概要欄）"
+}`;
+                try {
+                    const result = await callGeminiAPI(prompt, true, true);
+                    document.getElementById('youtube-title-output').value = result.title;
+                    document.getElementById('youtube-desc-output').value = result.description;
+                    document.getElementById('youtube-result-section').classList.remove('hidden');
+                } catch (error) {
+                    alert(`生成エラー: ${error.message}`);
+                } finally { hideLoader(); }
+            });
+        }
+        setupCopyButton(document.querySelector('#youtube-result-section [data-target="youtube-title-output"]'), document.getElementById('copy-youtube-feedback'));
+        setupCopyButton(document.querySelector('#youtube-result-section [data-target="youtube-desc-output"]'), document.getElementById('copy-youtube-feedback'));
+
+        // --- Common Gemini API Call Function ---
+        async function callGeminiAPI(prompt, jsonResponse = false, useSearch = false) {
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            if (jsonResponse) {
+                payload.generationConfig = { responseMimeType: "application/json" };
+            }
+            if (useSearch) {
+                payload.tools = [{ "google_search": {} }];
+            }
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text) throw new Error("APIから有効な応答がありませんでした。");
+            return jsonResponse ? JSON.parse(text) : text;
+        }
+
+        // --- Audio Helper Functions ---
         function base64ToArrayBuffer(base64) {
             const binaryString = window.atob(base64);
             const len = binaryString.length;
@@ -609,10 +721,6 @@
             }
             return new Blob([view], { type: 'audio/wav' });
         }
-        
-        // --- Initial Setup ---
-        handleRouting();
-        window.addEventListener('hashchange', handleRouting);
     });
 </script>
 </body>
