@@ -23,6 +23,7 @@
             font-weight: 700;
             transition: all 0.2s;
             border: 2px solid transparent;
+            cursor: pointer;
         }
         .nav-button:hover {
             background-color: #4B5563;
@@ -68,6 +69,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            cursor: pointer;
         }
         .main-button:hover {
             background-color: #4338CA;
@@ -78,6 +80,7 @@
             border-radius: 0.5rem;
             color: #F3F4F6;
             padding: 0.75rem;
+            width: 100%;
         }
         .form-input:focus, textarea:focus {
             outline: none;
@@ -91,17 +94,31 @@
         .form-checkbox:checked {
             background-color: #4F46E5;
         }
+        .loader-container {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
         .loader {
-            width: 20px;
-            height: 20px;
-            border: 3px solid #4B5563;
-            border-top-color: #F3F4F6;
+            width: 48px;
+            height: 48px;
+            border: 5px solid #4B5563;
+            border-bottom-color: #F3F4F6;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
+
         audio::-webkit-media-controls-panel { background-color: #374151; }
         audio::-webkit-media-controls-play-button,
         audio::-webkit-media-controls-volume-slider,
@@ -128,23 +145,145 @@
 
         <!-- Tool: AI Narration Assistant -->
         <div id="narration-tool" class="tool-container">
-             <!-- ... existing narration tool code ... -->
+            <h2 class="text-2xl font-bold text-center mb-6">AIナレーションアシスタント</h2>
+            <div class="step-card">
+                <div class="flex items-start gap-4">
+                    <div class="step-number">1</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">原稿入力</h3>
+                        <p class="text-gray-400 mb-4">ナレーションの元となる日本語のテキストを貼り付けてください。</p>
+                        <textarea id="script-input" class="h-48 text-base" placeholder="ここにナレーションの原稿を入力..."></textarea>
+                        <button id="generate-summary-btn" class="main-button mt-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                            <span>概要と読み方を生成</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="processing-section" class="hidden">
+                <div class="step-card">
+                    <div class="flex items-start gap-4">
+                        <div class="step-number">2</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">音声概要</h3>
+                            <p class="text-gray-400 mb-4">AIが生成した音声概要です。</p>
+                            <div id="summary-output" class="p-4 bg-[#374151] rounded-lg min-h-[6rem] text-gray-300 whitespace-pre-wrap"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="step-card">
+                    <div class="flex items-start gap-4">
+                        <div class="step-number">3</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">読み方の確認・修正</h3>
+                            <p class="text-gray-400 mb-4">漢字の読みが正しいか確認し、必要であればカタカナを直接編集してください。<br>（例：「中山」を「ナカヤマ」→「ナカザン」に修正）</p>
+                            <textarea id="reading-input" class="h-48 text-base"></textarea>
+                            <button id="generate-audio-btn" class="main-button mt-4">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 8.464a5 5 0 000 7.072m2.828 9.9a9 9 0 000-12.728M12 12h.01"></path></svg>
+                                <span>音声に変換</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="audio-result-section" class="step-card hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="step-number">4</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">プレビューとダウンロード</h3>
+                            <p class="text-gray-400 mb-4">生成された音声をご確認ください。</p>
+                            <audio id="audio-player" controls class="w-full mb-4"></audio>
+                            <button id="download-btn" class="main-button">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                <span>音声ファイルをダウンロード</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Tool: Audio Splitter -->
         <div id="splitter-tool" class="tool-container">
-             <!-- ... existing splitter tool placeholder ... -->
+             <h2 class="text-2xl font-bold text-center mb-6">音声分割ツール</h2>
+             <div class="step-card text-center">
+                <p class="text-gray-400">このツールは現在開発中です。今後のアップデートにご期待ください。</p>
+             </div>
         </div>
 
         <!-- Tool: Prompt Generator -->
         <div id="prompt-tool" class="tool-container">
-            <!-- ... existing prompt generator code ... -->
+            <h2 class="text-2xl font-bold text-center mb-6">NotebookLM競馬分析プロンプトジェネレーター</h2>
+            <div class="step-card">
+                <div class="flex items-start gap-4">
+                    <div class="step-number">1</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">レース情報の入力</h3>
+                        <p class="text-gray-400 mb-4">分析したいレースの基本情報を入力してください。</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="race-name" class="block text-sm font-medium text-gray-300 mb-1">レース名</label>
+                                <input type="text" id="race-name" class="form-input" placeholder="例：有馬記念">
+                            </div>
+                            <div>
+                                <label for="race-course" class="block text-sm font-medium text-gray-300 mb-1">競馬場</label>
+                                <input type="text" id="race-course" class="form-input" placeholder="例：中山競馬場">
+                            </div>
+                            <div>
+                                <label for="race-distance" class="block text-sm font-medium text-gray-300 mb-1">距離</label>
+                                <input type="text" id="race-distance" class="form-input" placeholder="例：芝2500m">
+                            </div>
+                            <div>
+                                <label for="race-condition" class="block text-sm font-medium text-gray-300 mb-1">想定馬場状態</label>
+                                <input type="text" id="race-condition" class="form-input" placeholder="例：良馬場">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="flex items-start gap-4">
+                    <div class="step-number">2</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">分析の視点を選択</h3>
+                        <p class="text-gray-400 mb-4">プロンプトに含めたい分析の視点を選択してください。（複数選択可）</p>
+                        <div id="analysis-perspectives" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="flex items-start gap-4">
+                    <div class="step-number">3</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">プロンプト生成</h3>
+                        <p class="text-gray-400 mb-4">下のボタンを押して、NotebookLM用の分析プロンプトを生成します。</p>
+                        <button id="generate-prompt-btn" class="main-button">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 0l-3-3m3 3l-3 3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span>プロンプトを生成</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="prompt-result-section" class="step-card hidden">
+                <div class="flex items-start gap-4">
+                    <div class="step-number">4</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">生成されたプロンプト</h3>
+                        <p class="text-gray-400 mb-4">生成されたプロンプトをコピーして、NotebookLMなどで活用してください。</p>
+                        <textarea id="prompt-output" class="h-64 text-sm" readonly></textarea>
+                        <button id="copy-prompt-btn" class="main-button mt-4">
+                           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                           <span>クリップボードにコピー</span>
+                        </button>
+                        <span id="copy-feedback" class="ml-4 text-green-400 opacity-0 transition-opacity">コピーしました！</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Tool: Content Generator -->
         <div id="content-tool" class="tool-container">
             <h2 class="text-2xl font-bold text-center mb-6">汎用コンテンツ生成プロンプト</h2>
-            <!-- Step 1 -->
             <div class="step-card">
                 <div class="flex items-start gap-4">
                     <div class="step-number">1</div>
@@ -154,11 +293,11 @@
                         <div class="space-y-4">
                             <div>
                                 <label for="content-theme" class="block text-sm font-medium text-gray-300 mb-1">分析テーマ</label>
-                                <input type="text" id="content-theme" class="w-full form-input" placeholder="例：ローズステークス 2025 期待値徹底分析">
+                                <input type="text" id="content-theme" class="form-input" placeholder="例：ローズステークス 2025 期待値徹底分析">
                             </div>
                             <div>
                                 <label for="content-data" class="block text-sm font-medium text-gray-300 mb-1">分析データ (テキスト)</label>
-                                <textarea id="content-data" class="w-full h-64 text-sm" placeholder="レース概要、コース分析、血統分析、有力馬評価などを入力..."></textarea>
+                                <textarea id="content-data" class="h-64 text-sm" placeholder="レース概要、コース分析、血統分析、有力馬評価などを入力..."></textarea>
                             </div>
                         </div>
                          <button id="generate-content-btn" class="main-button mt-4">
@@ -168,7 +307,6 @@
                     </div>
                 </div>
             </div>
-            <!-- Step 2 -->
             <div id="content-result-section" class="step-card hidden">
                 <div class="flex items-start gap-4">
                     <div class="step-number">2</div>
@@ -178,15 +316,15 @@
                         <div class="space-y-6">
                              <div>
                                 <h4 class="text-lg font-bold mb-2 text-indigo-400">グラフ用データ (JSON)</h4>
-                                <textarea id="content-json-output" class="w-full h-48 text-xs" readonly></textarea>
+                                <textarea id="content-json-output" class="h-48 text-xs" readonly></textarea>
                             </div>
                              <div>
                                 <h4 class="text-lg font-bold mb-2 text-indigo-400">ナレーション原稿</h4>
-                                <textarea id="content-script-output" class="w-full h-48 text-sm" readonly></textarea>
+                                <textarea id="content-script-output" class="h-48 text-sm" readonly></textarea>
                             </div>
                              <div>
                                 <h4 class="text-lg font-bold mb-2 text-indigo-400">概要テキスト</h4>
-                                <textarea id="content-summary-output" class="w-full h-32 text-sm" readonly></textarea>
+                                <textarea id="content-summary-output" class="h-32 text-sm" readonly></textarea>
                             </div>
                             <div>
                                 <h4 class="text-lg font-bold mb-2 text-indigo-400">ウェブコンテンツ (HTML)</h4>
@@ -204,37 +342,191 @@
         
     </div>
 
-     <div id="loader-container" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <!-- ... loader element ... -->
+    <div id="loader-container" class="loader-container hidden">
+        <div class="bg-[#1F2937] p-8 rounded-lg flex flex-col items-center gap-4">
+            <div class="loader"></div>
+            <p id="loader-text" class="text-lg font-semibold">処理中...</p>
+        </div>
     </div>
 
 <script>
-    const handleRouting = () => {
-        document.querySelectorAll('.tool-container').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.nav-button').forEach(el => el.classList.remove('active'));
-
-        const hash = window.location.hash.slice(1);
-        const params = new URLSearchParams(hash);
-        let tool = params.get('tool');
-        
-        if (!['narration', 'splitter', 'prompt', 'content'].includes(tool)) {
-            tool = 'narration'; // Default to a valid tool
-        }
-
-        const targetToolEl = document.getElementById(`${tool}-tool`);
-        const targetNavEl = document.getElementById(`nav-${tool}`);
-
-        if (targetToolEl) {
-            targetToolEl.classList.add('active');
-            if (targetNavEl) {
-                targetNavEl.classList.add('active');
-            }
-        }
-    };
-    
     document.addEventListener('DOMContentLoaded', () => {
-        // --- All existing JS code for other tools is here ---
+        // --- Common Elements & Functions ---
+        const loaderContainer = document.getElementById('loader-container');
+        const loaderText = document.getElementById('loader-text');
+
+        const showLoader = (text) => {
+            loaderText.textContent = text;
+            loaderContainer.classList.remove('hidden');
+        };
+        const hideLoader = () => {
+            loaderContainer.classList.add('hidden');
+        };
+
+        const handleRouting = () => {
+            document.querySelectorAll('.tool-container').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-button').forEach(el => el.classList.remove('active'));
+
+            const hash = window.location.hash.slice(1);
+            const params = new URLSearchParams(hash);
+            let tool = params.get('tool');
+            
+            if (!['narration', 'splitter', 'prompt', 'content'].includes(tool)) {
+                tool = 'narration';
+            }
+
+            const targetToolEl = document.getElementById(`${tool}-tool`);
+            const targetNavEl = document.getElementById(`nav-${tool}`);
+
+            if (targetToolEl && targetNavEl) {
+                targetToolEl.classList.add('active');
+                targetNavEl.classList.add('active');
+            } else {
+                // Fallback to default if something is wrong
+                document.getElementById('narration-tool').classList.add('active');
+                document.getElementById('nav-narration').classList.add('active');
+            }
+        };
+
+        // --- Navigation ---
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.addEventListener('click', () => {
+                window.location.hash = `tool=${button.dataset.tool}`;
+            });
+        });
+
+        // --- Narration Assistant ---
+        const scriptInput = document.getElementById('script-input');
+        const generateSummaryBtn = document.getElementById('generate-summary-btn');
+        const processingSection = document.getElementById('processing-section');
+        const summaryOutput = document.getElementById('summary-output');
+        const readingInput = document.getElementById('reading-input');
+        const generateAudioBtn = document.getElementById('generate-audio-btn');
+        const audioResultSection = document.getElementById('audio-result-section');
+        const audioPlayer = document.getElementById('audio-player');
+        const downloadBtn = document.getElementById('download-btn');
+        let audioBlob = null;
         
+        const getSummaryAndReading = async (text) => {
+            showLoader('概要と読み方を生成中...');
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: `以下のテキストについて、要約と、読み方を確認するためのカタカナ全文をJSON形式で生成してください。\n\n---\n\n${text}` }] }],
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "summary": { "type": "STRING" }, "reading": { "type": "STRING" } }, required: ["summary", "reading"] } }
+            };
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
+                const result = await response.json();
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!jsonText) { throw new Error("APIから有効な応答がありませんでした。"); }
+                const parsedData = JSON.parse(jsonText);
+                summaryOutput.textContent = parsedData.summary;
+                readingInput.value = parsedData.reading;
+                processingSection.classList.remove('hidden');
+            } catch (error) {
+                console.error("Error fetching summary/reading:", error);
+                alert(`エラーが発生しました: ${error.message}`);
+            } finally { hideLoader(); }
+        };
+        const generateNarration = async (text) => {
+            showLoader('音声を生成中...');
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ parts: [{ text: text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }, };
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) { throw new Error(`API Error: ${response.statusText}`); }
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    if(!sampleRateMatch) throw new Error("Sample rate not found in mime type");
+                    const sampleRate = parseInt(sampleRateMatch[1], 10);
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    audioBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayer.src = audioUrl;
+                    audioResultSection.classList.remove('hidden');
+                } else { throw new Error("音声データが見つかりませんでした。"); }
+            } catch (error) {
+                console.error("Error generating audio:", error);
+                alert(`エラーが発生しました: ${error.message}`);
+            } finally { hideLoader(); }
+        };
+        if(generateSummaryBtn) generateSummaryBtn.addEventListener('click', () => {
+            const script = scriptInput.value.trim();
+            if (script) { getSummaryAndReading(script); } else { alert('ナレーションの原稿を入力してください。'); }
+        });
+        if(generateAudioBtn) generateAudioBtn.addEventListener('click', () => {
+            const readingText = readingInput.value.trim();
+            if (readingText) { generateNarration(readingText); } else { alert('読み方を修正するテキストがありません。'); }
+        });
+        if(downloadBtn) downloadBtn.addEventListener('click', () => {
+            if (audioBlob) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(audioBlob);
+                a.download = 'narration.wav';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else { alert('ダウンロードする音声ファイルがありません。'); }
+        });
+
+        // --- Prompt Generator ---
+        const raceNameInput = document.getElementById('race-name');
+        const raceCourseInput = document.getElementById('race-course');
+        const raceDistanceInput = document.getElementById('race-distance');
+        const raceConditionInput = document.getElementById('race-condition');
+        const perspectivesContainer = document.getElementById('analysis-perspectives');
+        const generatePromptBtn = document.getElementById('generate-prompt-btn');
+        const promptResultSection = document.getElementById('prompt-result-section');
+        const promptOutput = document.getElementById('prompt-output');
+        const copyPromptBtn = document.getElementById('copy-prompt-btn');
+        const copyFeedback = document.getElementById('copy-feedback');
+        const perspectives = ['コース適性', '血統', '騎手', '調教', '過去データ', '近走内容', '展開予測', '馬体重'];
+        if(perspectivesContainer) perspectives.forEach(p => {
+            perspectivesContainer.innerHTML += `
+                <label class="flex items-center space-x-2 text-gray-300 cursor-pointer">
+                    <input type="checkbox" class="form-checkbox h-5 w-5 bg-gray-700 border-gray-600 rounded text-indigo-500 focus:ring-indigo-500" value="${p}">
+                    <span>${p}</span>
+                </label>
+            `;
+        });
+        if(generatePromptBtn) generatePromptBtn.addEventListener('click', () => {
+            const raceName = raceNameInput.value.trim();
+            const raceCourse = raceCourseInput.value.trim();
+            const raceDistance = raceDistanceInput.value.trim();
+            const raceCondition = raceConditionInput.value.trim();
+            if (!raceName || !raceCourse || !raceDistance || !raceCondition) {
+                alert('すべてのレース情報を入力してください。');
+                return;
+            }
+            const selectedPerspectives = Array.from(perspectivesContainer.querySelectorAll('input:checked')).map(el => el.value);
+            if (selectedPerspectives.length === 0) {
+                alert('分析の視点を1つ以上選択してください。');
+                return;
+            }
+            const prompt = `# 指示\nあなたは優秀な競馬分析家です。以下の##レース情報と##分析の視点を基に、NotebookLM用の詳細な分析プロンプトを生成してください。\n\n# NotebookLM用プロンプト\n\n## レース情報\n- レース名: ${raceName}\n- 開催場所: ${raceCourse}\n- 距離: ${raceDistance}\n- 想定馬場状態: ${raceCondition}\n\n## 分析の視点\n${selectedPerspectives.map(p => `- ${p}`).join('\n')}\n\n## 分析プロンプト\n上記のレース情報と分析の視点を踏まえ、有力馬、対抗馬、穴馬候補をそれぞれ3頭ずつ挙げ、その根拠を詳細に分析してください。特に、各視点がどのように馬の評価に影響するのかを具体的に論じてください。最終的な結論として、期待値の高い買い目（例：馬連、3連複）も提案してください。`.trim();
+            promptOutput.value = prompt;
+            promptResultSection.classList.remove('hidden');
+        });
+        if(copyPromptBtn) copyPromptBtn.addEventListener('click', () => {
+            promptOutput.select();
+            try {
+                document.execCommand('copy');
+                copyFeedback.classList.remove('opacity-0');
+                setTimeout(() => { copyFeedback.classList.add('opacity-0'); }, 2000);
+            } catch (err) {
+                console.error('クリップボードへのコピーに失敗しました: ', err);
+                alert('コピーに失敗しました。');
+            }
+        });
+
         // --- Content Generator ---
         const contentThemeInput = document.getElementById('content-theme');
         const contentDataInput = document.getElementById('content-data');
@@ -245,83 +537,36 @@
         const contentSummaryOutput = document.getElementById('content-summary-output');
         const previewHtmlBtn = document.getElementById('preview-html-btn');
         let generatedHtmlContent = '';
-
-        generateContentBtn.addEventListener('click', async () => {
+        if(generateContentBtn) generateContentBtn.addEventListener('click', async () => {
             const theme = contentThemeInput.value.trim();
             const data = contentDataInput.value.trim();
             if (!theme || !data) {
                 alert('分析テーマと分析データの両方を入力してください。');
                 return;
             }
-
             showLoader('全コンテンツを生成中...');
-
-            const userPrompt = `
-あなたは、専門的な分析コンテンツを、ウェブ、テキスト、音声概要の3つの形式でアウトプットするAIアシスタントです。以下の入力情報に基づいて、指定された形式で出力を作成してください。
-
-【入力セクション】
-1. 分析テーマ:
-${theme}
-
-2. 分析データ (テキスト):
-${data}
-
-3. グラフ用データ (JSON形式) の自動生成:
-2. 分析データ (テキスト):の内容を解析し、必要に応じてウェブ検索で補足的な統計データ（例：血統のシェア、コースの枠順有利不利の具体的な数値など）を収集してください。その上で、以下のJSON構造に従ってグラフ用のデータをあなた自身で生成してください。
-- doughnutChart: 分析データ内の主要な要素の割合を示してください。（例：血統の割合など）
-- bubbleChart: 分析データに登場する複数の比較対象（例：有力馬）を、2つの軸（例：瞬発力、スタミナ）とサイズ（例：期待度）で評価し、数値化してください。
-- barChart: 分析データ内のカテゴリ別データを示してください。（例：枠順別データなど）
-
-【出力セクション】
-あなたは以下の全ての項目を単一のJSONオブジェクトとして出力しなければなりません。
-
-{
-  "graphData": {
-    "doughnutChart": { "title": "【ここにグラフタイトル】", "labels": ["【要素1】", "【要素2】", "【その他】"], "data": ["[数値1]", "[数値2]", "[数値3]"] },
-    "bubbleChart": { "title": "【ここにグラフタイトル】", "datasets": [ { "label": "【対象A】", "data": [{"x": "[X軸の値]", "y": "[Y軸の値]", "r": "[サイズ]"}] }, { "label": "【対象B】", "data": [{"x": "[X軸の値]", "y": "[Y軸の値]", "r": "[サイズ]"}] } ], "xLabel": "【X軸ラベル】", "yLabel": "【Y軸ラベル】" },
-    "barChart": { "title": "【ここにグラフタイトル】", "labels": ["【カテゴリ1】", "【カテゴリ2】", "【カテゴリ3】", "【カテゴリ4】"], "data": ["[数値1]", "[数値2]", "[数値3]", "[数値4]"], "label": "【データラベル】" }
-  },
-  "webContent": "ここに、入力された情報に基づき、rose_stakes_2025.htmlのモダンで視覚的なデザインを踏襲した、縦スクロール形式の単一HTMLファイルを生成してください。すべてのCSSとJavaScriptはHTMLファイル内に含めてください。",
-  "narrationScript": "ここに、入力情報を基に、約1分半で読める、聴き手を引き込むようなナレーション原稿を作成してください。final_audio_script.mdの構成（導入→本題→結論→締め）と語り口を参考にしてください。",
-  "summaryText": "ここに、コンテンツ全体の要点を箇条書きで簡潔にまとめたサマリーテキストを作成してください。"
-}
-`;
-            
+            const userPrompt = `あなたは、専門的な分析コンテンツを、ウェブ、テキスト、音声概要の3つの形式でアウトプットするAIアシスタントです。以下の入力情報に基づいて、指定された形式で出力を作成してください。\n\n【入力セクション】\n1. 分析テーマ:\n${theme}\n\n2. 分析データ (テキスト):\n${data}\n\n3. グラフ用データ (JSON形式) の自動生成:\n2. 分析データ (テキスト):の内容を解析し、必要に応じてウェブ検索で補足的な統計データ（例：血統のシェア、コースの枠順有利不利の具体的な数値など）を収集してください。その上で、以下のJSON構造に従ってグラフ用のデータをあなた自身で生成してください。\n- doughnutChart: 分析データ内の主要な要素の割合を示してください。（例：血統の割合など）\n- bubbleChart: 分析データに登場する複数の比較対象（例：有力馬）を、2つの軸（例：瞬発力、スタミナ）とサイズ（例：期待度）で評価し、数値化してください。\n- barChart: 分析データ内のカテゴリ別データを示してください。（例：枠順別データなど）\n\n【出力セクション】\nあなたは以下の全ての項目を単一のJSONオブジェクトとして出力しなければなりません。\n\n{\n  "graphData": {\n    "doughnutChart": { "title": "【ここにグラフタイトル】", "labels": ["【要素1】", "【要素2】", "【その他】"], "data": ["[数値1]", "[数値2]", "[数値3]"] },\n    "bubbleChart": { "title": "【ここにグラフタイトル】", "datasets": [ { "label": "【対象A】", "data": [{"x": "[X軸の値]", "y": "[Y軸の値]", "r": "[サイズ]"}] }, { "label": "【対象B】", "data": [{"x": "[X軸の値]", "y": "[Y軸の値]", "r": "[サイズ]"}] } ], "xLabel": "【X軸ラベル】", "yLabel": "【Y軸ラベル】" },\n    "barChart": { "title": "【ここにグラフタイトル】", "labels": ["【カテゴリ1】", "【カテゴリ2】", "【カテゴリ3】", "【カテゴリ4】"], "data": ["[数値1]", "[数値2]", "[数値3]", "[数値4]"], "label": "【データラベル】" }\n  },\n  "webContent": "ここに、入力された情報に基づき、rose_stakes_2025.htmlのモダンで視覚的なデザインを踏襲した、縦スクロール形式の単一HTMLファイルを生成してください。すべてのCSSとJavaScriptはHTMLファイル内に含めてください。",\n  "narrationScript": "ここに、入力情報を基に、約1分半で読める、聴き手を引き込むようなナレーション原稿を作成してください。final_audio_script.mdの構成（導入→本題→結論→締め）と語り口を参考にしてください。",\n  "summaryText": "ここに、コンテンツ全体の要点を箇条書きで簡潔にまとめたサマリーテキストを作成してください。"\n}`;
             const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: userPrompt }] }],
-                tools: [{"google_search": {}}],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                }
-            };
-
+            const payload = { contents: [{ parts: [{ text: userPrompt }] }], tools: [{"google_search": {}}], generationConfig: { responseMimeType: "application/json", } };
             try {
                 const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if (!response.ok) { throw new Error(`API Error: ${response.status}`); }
                 const result = await response.json();
                 const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (!jsonText) { throw new Error("APIから有効な応答がありませんでした。"); }
-                
                 const parsedData = JSON.parse(jsonText);
-                
                 contentJsonOutput.value = JSON.stringify(parsedData.graphData, null, 2);
                 contentScriptOutput.value = parsedData.narrationScript;
                 contentSummaryOutput.value = parsedData.summaryText;
                 generatedHtmlContent = parsedData.webContent;
-
                 contentResultSection.classList.remove('hidden');
-
             } catch (error) {
                 console.error("Error generating content:", error);
                 alert(`コンテンツの生成中にエラーが発生しました: ${error.message}`);
-            } finally {
-                hideLoader();
-            }
+            } finally { hideLoader(); }
         });
-
-        previewHtmlBtn.addEventListener('click', () => {
+        if(previewHtmlBtn) previewHtmlBtn.addEventListener('click', () => {
             if (generatedHtmlContent) {
                 const previewWindow = window.open();
                 previewWindow.document.write(generatedHtmlContent);
@@ -331,6 +576,40 @@ ${data}
             }
         });
 
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
+            return bytes.buffer;
+        }
+        function pcmToWav(pcmData, sampleRate) {
+            const numChannels = 1, bitsPerSample = 16;
+            const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+            const blockAlign = numChannels * bitsPerSample / 8;
+            const dataSize = pcmData.length * 2;
+            const fileSize = 36 + dataSize;
+            const buffer = new ArrayBuffer(fileSize + 8);
+            const view = new DataView(buffer);
+            view.setUint32(0, 0x52494646, false); // "RIFF"
+            view.setUint32(4, fileSize, true);
+            view.setUint32(8, 0x57415645, false); // "WAVE"
+            view.setUint32(12, 0x666d7420, false); // "fmt "
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+            view.setUint32(36, 0x64617461, false); // "data"
+            view.setUint32(40, dataSize, true);
+            for (let i = 0; i < pcmData.length; i++) {
+                view.setInt16(44 + i * 2, pcmData[i], true);
+            }
+            return new Blob([view], { type: 'audio/wav' });
+        }
+        
         // --- Initial Setup ---
         handleRouting();
         window.addEventListener('hashchange', handleRouting);
