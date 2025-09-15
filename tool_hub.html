@@ -93,8 +93,8 @@
             <p class="text-gray-400 mt-2">AIを活用したツールで制作ワークフローを加速させます。</p>
         </header>
 
-        <!-- Tool: AI Narration Assistant -->
-        <div id="narration-tool" class="tool-container">
+        <!-- Tool: AI Narration Assistant (now active by default) -->
+        <div id="narration-tool" class="tool-container active">
             <h2 class="text-2xl font-bold text-center mb-6">AIナレーションアシスタント</h2>
              <!-- Step 1: Input Script -->
             <div class="step-card">
@@ -158,9 +158,7 @@
         </div>
         
         <!-- Add other tools here in the future -->
-        <div id="default-message" class="text-center text-gray-500 py-10">
-            <p>ツールを選択してください。</p>
-        </div>
+        
     </div>
 
      <div id="loader-container" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
@@ -176,18 +174,20 @@
 
     // Function to parse URL hash and activate the correct tool
     const handleRouting = () => {
-        const hash = window.location.hash.slice(1); // Remove '#'
-        if (!hash) {
-            document.getElementById('default-message').style.display = 'block';
-            return;
-        }
+        // Hide all tools first to ensure a clean state
+        document.querySelectorAll('.tool-container').forEach(toolEl => {
+            toolEl.classList.remove('active');
+        });
 
+        const hash = window.location.hash.slice(1); // Remove '#'
         const params = new URLSearchParams(hash);
         const tool = params.get('tool');
         const text = params.get('text');
 
+        let toolActivated = false;
+
+        // Activate tool based on URL hash
         if (tool === 'narration') {
-            document.getElementById('default-message').style.display = 'none';
             document.getElementById('narration-tool').classList.add('active');
             if (text) {
                 const scriptInput = document.getElementById('script-input');
@@ -195,6 +195,14 @@
                  // Automatically trigger the first step
                 document.getElementById('generate-summary-btn').click();
             }
+            toolActivated = true;
+        } 
+        // Add else if for future tools here
+        // else if (tool === 'audio-splitter') { ... }
+
+        // If no valid tool is found in the hash, or no hash exists, show the default tool.
+        if (!toolActivated) {
+            document.getElementById('narration-tool').classList.add('active');
         }
     };
     
@@ -350,3 +358,4 @@
 </script>
 </body>
 </html>
+
