@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Creative Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        .nav-button {
+            background-color: #374151;
+            color: #d1d5db;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            transition: all 0.2s ease-in-out;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        .nav-button:hover {
+            transform: translateY(-2px);
+            background-color: #4b5563;
+        }
+        .nav-button.active {
+            background-color: #f0eefc;
+            color: #6d28d9;
+            box-shadow: 0 4px 10px rgba(109, 40, 217, 0.3);
+        }
+        .tool-container {
+            display: none;
+        }
+        .tool-container.active {
+            display: block;
+        }
+        .loader-container {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            gap: 1rem;
+        }
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #4b5563;
+            border-top-color: #a78bfa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .generate-button, .step-button {
+            background: linear-gradient(to right, #8b5cf6, #6d28d9);
+            color: white;
+            font-weight: 700;
+            padding: 0.75rem 2rem;
+            border-radius: 9999px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .generate-button:hover, .step-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .generate-button:disabled, .step-button:disabled {
+            background: #4b5563;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .back-button {
+             background-color: #4b5563;
+        }
+        .upload-box {
+            background-color: #1f2937;
+            border: 2px dashed #4b5563;
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .upload-box:hover {
+            border-color: #8b5cf6;
+            background-color: #374151;
+        }
+        .preview-img {
+            max-height: 200px;
+            max-width: 100%;
+            border-radius: 0.5rem;
+            object-fit: contain;
+            margin-top: 1rem;
+        }
+        .form-input, .form-select, .form-textarea {
+            background-color: #374151;
+            border: 1px solid #4B5563;
+            border-radius: 0.5rem;
+            color: #F3F4F6;
+            padding: 0.75rem;
+            width: 100%;
+        }
+        .category-label {
+            display: block;
+            padding: 0.5rem 1rem;
+            border: 2px solid #4b5563;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        input[type="radio"]:checked + .category-label {
+              border-color: #8b5cf6;
+              background-color: #4c1d95;
+              color: white;
+        }
+        .health-step, .food-step {
+            display: none;
+        }
+        .health-step.active, .food-step.active {
+            display: block;
+        }
+
+    </style>
+</head>
+<body class="p-8">
+
+    <div class="max-w-5xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-500">
+                AI Creative Studio
+            </h1>
+            <p class="text-gray-400 mt-3">AIでビジュアルコンテンツ制作を、もっと速く、もっと面白く。</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="flex flex-wrap justify-center gap-4 mb-10">
+            <button class="nav-button" data-tool="tryon">バーチャル試着</button>
+            <button class="nav-button" data-tool="figure">フィギュア制作</button>
+            <button class="nav-button" data-tool="avatar">アバター制作</button>
+            <button class="nav-button" data-tool="interior">インテリアデザイン</button>
+            <button class="nav-button" data-tool="food">フードスタイリング</button>
+            <button class="nav-button" data-tool="health">AI ヘルスシェフ (開発中)</button>
+        </nav>
+        
+        <div id="tool-contents">
+            <!-- Tool: AI Virtual Try-On -->
+            <div id="tryon-tool" class="tool-container">
+                <div class="bg-[#1f2937] p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold mb-6 text-center">AI バーチャル試着ツール</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-3 text-center text-gray-300">1. あなたの写真</h3>
+                            <div id="tryon-person-upload-box" class="upload-box">
+                                <p class="font-semibold text-gray-300">クリックしてファイルを選択</p>
+                                <img id="tryon-person-preview" class="hidden preview-img" alt="Person Preview">
+                                <p id="tryon-person-filename" class="text-sm text-purple-400 font-semibold mt-2"></p>
+                            </div>
+                            <input type="file" id="tryon-person-input" class="hidden" accept="image/*">
+                        </div>
+                        <div>
+                            <h3 id="tryon-item-title" class="text-xl font-bold mb-3 text-center text-gray-300">2. 服の画像</h3>
+                            <div id="tryon-clothing-upload-box" class="upload-box">
+                                <p class="font-semibold text-gray-300">クリックしてファイルを選択</p>
+                                <img id="tryon-clothing-preview" class="hidden preview-img" alt="Clothing Preview">
+                                <p id="tryon-clothing-filename" class="text-sm text-purple-400 font-semibold mt-2"></p>
+                            </div>
+                            <input type="file" id="tryon-clothing-input" class="hidden" accept="image/*">
+                        </div>
+                    </div>
+                     <div class="mb-8 text-center">
+                        <h3 class="text-xl font-bold mb-4 text-center text-gray-300">3. 適用するアイテムを選択</h3>
+                        <div id="tryon-category-selector" class="flex justify-center gap-4">
+                            <div>
+                                <input type="radio" name="tryon-category" value="clothing" id="cat-clothing" class="sr-only" checked>
+                                <label for="cat-clothing" class="category-label">服</label>
+                            </div>
+                            <div>
+                                <input type="radio" name="tryon-category" value="glasses" id="cat-glasses" class="sr-only">
+                                <label for="cat-glasses" class="category-label">眼鏡</label>
+                            </div>
+                            <div>
+                                <input type="radio" name="tryon-category" value="hairstyle" id="cat-hairstyle" class="sr-only">
+                                <label for="cat-hairstyle" class="category-label">ヘアースタイル</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mb-8">
+                        <button id="tryon-generate-btn" class="generate-button text-xl" disabled>試着画像を生成する</button>
+                    </div>
+                    <div id="tryon-result-container" class="hidden bg-gray-900/50 p-6 rounded-lg">
+                        <h3 class="text-2xl font-bold mb-4 text-center">生成された試着画像</h3>
+                        <img id="tryon-result-image" src="" alt="Generated try-on image" class="mx-auto rounded-lg max-w-full h-auto">
+                        <p id="tryon-error-message" class="text-red-400 text-center mt-4"></p>
+                    </div>
+                </div>
+                <div class="mt-8 bg-gray-800/50 p-6 rounded-lg">
+                    <h3 class="text-lg font-bold mb-2">使い方</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                        <li>左の枠に「あなたの写真」をアップロードします。</li>
+                        <li>右の枠に着てみたい「服の画像」をアップロードします。（眼鏡や髪型も試せます）</li>
+                        <li>「適用するアイテム」で試したいものの種類を選びます。</li>
+                        <li>「試着画像を生成する」ボタンを押すと、AIが数秒で合成画像を作成します。</li>
+                    </ol>
+                    <h3 class="text-lg font-bold mt-6 mb-2">うまく使うためのコツ</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-300">
+                        <li><strong class="text-purple-300">モデルの写真:</strong> 正面を向いていて、顔や全身がはっきりと写っている写真を使うと精度が上がります。</li>
+                        <li><strong class="text-purple-300">服の画像:</strong> 商品写真のように、服だけがはっきりと写っている画像がおすすめです。人が着ている写真でも試せます。</li>
+                        <li><strong class="text-purple-300">眼鏡・髪型:</strong> 服と同様に、アイテムがはっきりと写っている画像を選ぶと、きれいに合成されやすくなります。</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Tool: AI Figure Generation -->
+            <div id="figure-tool" class="tool-container">
+                 <div class="bg-[#1f2937] p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold mb-6 text-center">AI フィギュア制作ツール</h2>
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold mb-3 text-center text-gray-300">1. フィギュアにしたい画像</h3>
+                        <div id="figure-image-upload-box" class="upload-box max-w-lg mx-auto">
+                            <p class="font-semibold text-gray-300">クリックしてファイルを選択</p>
+                            <img id="figure-image-preview" class="hidden preview-img" alt="Image Preview">
+                            <p id="figure-image-filename" class="text-sm text-purple-400 font-semibold mt-2"></p>
+                        </div>
+                        <input type="file" id="figure-image-input" class="hidden" accept="image/*">
+                    </div>
+                    <div class="text-center mb-8">
+                        <button id="figure-generate-btn" class="generate-button text-xl" disabled>フィギュアを生成する</button>
+                    </div>
+                    <div id="figure-result-container" class="hidden bg-gray-900/50 p-6 rounded-lg">
+                        <h3 class="text-2xl font-bold mb-4 text-center">完成イメージ</h3>
+                        <img id="figure-result-image" src="" alt="Generated figure image" class="mx-auto rounded-lg max-w-full h-auto">
+                        <p id="figure-error-message" class="text-red-400 text-center mt-4"></p>
+                    </div>
+                </div>
+                <div class="mt-8 bg-gray-800/50 p-6 rounded-lg">
+                    <h3 class="text-lg font-bold mb-2">使い方</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                        <li>「フィギュアにしたい画像」の枠に、人物やキャラクター、ペットなどの写真をアップロードします。</li>
+                        <li>「フィギュアを生成する」ボタンを押すと、AIが元画像を元に、まるで本物のフィギュアのような画像を作成します。</li>
+                    </ol>
+                    <h3 class="text-lg font-bold mt-6 mb-2">うまく使うためのコツ</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-300">
+                        <li><strong class="text-purple-300">全身が写った画像:</strong> ポーズが面白い写真や、全身が写っている写真を使うと、よりフィギュアらしいダイナミックな仕上がりになります。</li>
+                        <li><strong class="text-purple-300">背景がシンプルな画像:</strong> 被写体がはっきりと際立っている画像のほうが、AIが認識しやすく、クオリティが向上します。</li>
+                        <li><strong class="text-purple-300">アイデア次第で色々:</strong> アニメのキャラクター、ゲームのスクリーンショット、自分で描いたイラストなど、様々な画像で試すと面白い結果が得られます。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Tool: AI Avatar Generator -->
+            <div id="avatar-tool" class="tool-container">
+                <div class="bg-[#1f2937] p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold mb-6 text-center">AI アバター制作ツール</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-3 text-center text-gray-300">1. あなたの写真</h3>
+                            <div id="avatar-person-upload-box" class="upload-box">
+                                <p class="font-semibold text-gray-300">クリックしてファイルを選択</p>
+                                <img id="avatar-person-preview" class="hidden preview-img" alt="Person Preview">
+                                <p id="avatar-person-filename" class="text-sm text-purple-400 font-semibold mt-2"></p>
+                            </div>
+                            <input type="file" id="avatar-person-input" class="hidden" accept="image/*">
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-3 text-center text-gray-300">2. 理想のアニメ画像 (スタイル)</h3>
+                            <div id="avatar-style-upload-box" class="upload-box">
+                                <p class="font-semibold text-gray-300">クリックしてファイルを選択</p>
+                                <img id="avatar-style-preview" class="hidden preview-img" alt="Style Preview">
+                                <p id="avatar-style-filename" class="text-sm text-purple-400 font-semibold mt-2"></p>
+                            </div>
+                            <input type="file" id="avatar-style-input" class="hidden" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="text-center mb-8">
+                        <button id="avatar-generate-btn" class="generate-button text-xl" disabled>アバターを生成する</button>
+                    </div>
+                    <div id="avatar-result-container" class="hidden bg-gray-900/50 p-6 rounded-lg">
+                        <h3 class="text-2xl font-bold mb-4 text-center">生成されたアバター</h3>
+                        <img id="avatar-result-image" src="" alt="Generated avatar" class="mx-auto rounded-lg max-w-full h-auto">
+                        <p id="avatar-error-message" class="text-red-400 text-center mt-4"></p>
+                    </div>
+                </div>
+                 <div class="mt-8 bg-gray-800/50 p-6 rounded-lg">
+                    <h3 class="text-lg font-bold mb-2">使い方</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                        <li>左の枠に、ベースとなる「あなたの写真」をアップロードします。</li>
+                        <li>右の枠に、お手本にしたい「理想のアニメ画像」をアップロードします。</li>
+                        <li>「アバターを生成する」ボタンを押すと、AIがあなたの写真の特徴を保ちつつ、理想の画風に変換してくれます。</li>
+                    </ol>
+                    <h3 class="text-lg font-bold mt-6 mb-2">うまく使うためのコツ</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-300">
+                        <li><strong class="text-purple-300">顔がはっきりした写真:</strong> 自分の写真は、正面を向いていて、髪型や表情がよくわかるものを選ぶと、特徴がアバターに反映されやすくなります。</li>
+                        <li><strong class="text-purple-300">画風が特徴的な画像:</strong> スタイルとして読み込ませる画像は、好きなアニメーターやイラストレーターの作品など、画風がはっきりしているものを選ぶと、その特徴が強く出ます。</li>
+                        <li><strong class="text-purple-300">構図を合わせる:</strong> 元の写真と、お手本にする画像の顔の向きや構図を似せると、より自然な仕上がりになります。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Tool: AI Interior Designer -->
+            <div id="interior-tool" class="tool-container">
+                <div class="bg-[#1f2937] p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold mb-6 text-center">AI インテリアデザイナー</h2>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-3 text-center text-gray-300">1. 部屋の写真をアップロード</h3>
+                            <div id="interior-room-upload-box" class="upload-box">
+                                <p class="font-semibold text-gray-300">クリックしてファイルを選択</p>
+                                <img id="interior-room-preview" class="hidden preview-img" alt="Room Preview">
+                                <p id="interior-room-filename" class="text-sm text-purple-400 font-semibold mt-2"></p>
+                            </div>
+                            <input type="file" id="interior-room-input" class="hidden" accept="image/*">
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-3 text-center text-gray-300">2. デザインスタイルを選択</h3>
+                            <select id="interior-style-select" class="form-select">
+                                <option>北欧風</option>
+                                <option>ミニマリスト</option>
+                                <option>インダストリアル</option>
+                                <option>和モダン</option>
+                                <option>サイバーパンク</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-center mb-8">
+                        <button id="interior-generate-btn" class="generate-button text-xl" disabled>デザインを生成する</button>
+                    </div>
+                    <div id="interior-result-container" class="hidden bg-gray-900/50 p-6 rounded-lg">
+                        <h3 class="text-2xl font-bold mb-4 text-center">生成されたデザイン案</h3>
+                        <img id="interior-result-image" src="" alt="Generated interior design" class="mx-auto rounded-lg max-w-full h-auto">
+                        <p id="interior-error-message" class="text-red-400 text-center mt-4"></p>
+                    </div>
+                </div>
+                 <div class="mt-8 bg-gray-800/50 p-6 rounded-lg">
+                    <h3 class="text-lg font-bold mb-2">使い方</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                        <li>左の枠に、模様替えしたい「部屋の写真」をアップロードします。</li>
+                        <li>右のセレクトボックスから、試したい「デザインスタイル」を選びます。</li>
+                        <li>「デザインを生成する」ボタンを押すと、AIが部屋の構造はそのままに、選択したスタイルで内装をリデザインしてくれます。</li>
+                    </ol>
+                    <h3 class="text-lg font-bold mt-6 mb-2">うまく使うためのコツ</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-300">
+                        <li><strong class="text-purple-300">部屋全体が写るように:</strong> なるべく部屋の角から、引いたアングルで撮影した写真を使うと、AIが部屋の構造を理解しやすくなります。</li>
+                        <li><strong class="text-purple-300">片付いた部屋で:</strong> 床や机の上が散らかっていると、AIがそれを家具の一部だと誤解してしまうことがあります。なるべく物を減らした状態で撮影するのがおすすめです。</li>
+                        <li><strong class="text-purple-300">明るい写真を使う:</strong> 日中の明るい光で撮影された写真のほうが、AIがきれいで自然なデザインを生成しやすくなります。</li>
+                    </ul>
+                </div>
+            </div>
+
+             <!-- Tool: AI Food Stylist (New Conversational UI) -->
+            <div id="food-tool" class="tool-container">
+                 <div class="bg-[#1f2937] p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold mb-6 text-center">AI フードスタイリスト</h2>
+
+                    <!-- Step 1: Idea -->
+                    <div id="food-step-1" class="food-step">
+                        <h3 class="text-xl font-bold mb-3 text-center text-gray-300">ステップ1: どんな料理が食べたいですか？</h3>
+                         <div class="max-w-lg mx-auto">
+                            <input type="text" id="food-idea-input" class="form-input text-center" placeholder="例：ラーメン、お母さんのカレーライス">
+                        </div>
+                        <div class="text-center mt-8">
+                            <button id="food-step1-next" class="step-button">AIに説明文を考えてもらう</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Prompt -->
+                    <div id="food-step-2" class="food-step">
+                        <h3 class="text-xl font-bold mb-3 text-center text-gray-300">ステップ2: AIが考えた説明文（編集可能）</h3>
+                        <div class="max-w-lg mx-auto">
+                           <textarea id="food-description-input" class="form-textarea h-32"></textarea>
+                        </div>
+                        <div class="flex justify-center gap-4 mt-8">
+                            <button id="food-step2-back" class="step-button back-button">戻る</button>
+                            <button id="food-generate-btn" class="generate-button">この内容で料理写真を生成</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Result -->
+                    <div id="food-step-3" class="food-step">
+                        <div id="food-result-container" class="bg-gray-900/50 p-6 rounded-lg">
+                            <h3 class="text-2xl font-bold mb-4 text-center">生成された料理写真</h3>
+                            <img id="food-result-image" src="" alt="Generated food" class="mx-auto rounded-lg max-w-full h-auto">
+                            <p id="food-error-message" class="text-red-400 text-center mt-4"></p>
+                        </div>
+                         <div class="text-center mt-8">
+                            <button id="food-start-over" class="step-button">最初からやり直す</button>
+                        </div>
+                    </div>
+
+                </div>
+                 <div class="mt-8 bg-gray-800/50 p-6 rounded-lg">
+                    <h3 class="text-lg font-bold mb-2">使い方</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                        <li>食べたい料理のアイデアを簡単に入力します。（例：「海鮮丼」）</li>
+                        <li>「AIに説明文を考えてもらう」ボタンを押すと、AIがより具体的で美味しそうな説明文を自動で作成します。</li>
+                        <li>自動作成された説明文は自由に編集できます。編集後、「この内容で料理写真を生成」ボタンを押します。</li>
+                        <li>AIが、まるで本物のような料理の写真を生成します。</li>
+                    </ol>
+                    <h3 class="text-lg font-bold mt-6 mb-2">うまく使うためのコツ</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-300">
+                        <li><strong class="text-purple-300">五感を刺激する言葉:</strong> AIが作った説明文に「とろーり」「あつあつ」「新鮮な」「香ばしい」といった言葉を付け加えると、より美味しそうな写真が生成されやすくなります。</li>
+                        <li><strong class="text-purple-300">シチュエーションを追加:</strong> 「屋台で食べる」「高級レストランの」「雨の日に家で」といった情景を追加すると、写真の雰囲気が豊かになります。</li>
+                        <li><strong class="text-purple-300">意外な組み合わせ:</strong> 「サイバーパンク風のラーメン」「お菓子でできたお寿司」など、現実にはないような面白い指示を出すと、AIがユニークな画像を生成してくれます。</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Tool: AI Health Chef (New Conversational UI) -->
+            <div id="health-tool" class="tool-container">
+                <div class="bg-[#1f2937] p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold mb-6 text-center">AI ヘルスシェフ (開発中)</h2>
+
+                    <!-- Step 1: Upload Ingredient -->
+                    <div id="health-step-1" class="health-step active">
+                        <h3 class="text-xl font-bold mb-3 text-center text-gray-300">ステップ1: 食材をアップロード</h3>
+                        <div id="health-ingredient-upload-box" class="upload-box max-w-lg mx-auto">
+                            <p class="font-semibold text-gray-300">クリックしてファイルを選択</p>
+                            <img id="health-ingredient-preview" class="hidden preview-img" alt="Ingredient Preview">
+                            <p id="health-ingredient-filename" class="text-sm text-purple-400 font-semibold mt-2"></p>
+                        </div>
+                        <input type="file" id="health-ingredient-input" class="hidden" accept="image/*">
+                        <div class="text-center mt-8">
+                            <button id="health-step1-next" class="step-button" disabled>次へ</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Select Genre -->
+                    <div id="health-step-2" class="health-step">
+                        <h3 class="text-xl font-bold mb-4 text-center text-gray-300">ステップ2: 調理ジャンルを選択</h3>
+                        <div id="health-genre-selector" class="flex justify-center flex-wrap gap-4 mb-4">
+                            <div>
+                                <input type="radio" name="health-genre" value="和食" id="genre-japanese" class="sr-only" checked>
+                                <label for="genre-japanese" class="category-label">和食</label>
+                            </div>
+                            <div>
+                                <input type="radio" name="health-genre" value="洋食" id="genre-western" class="sr-only">
+                                <label for="genre-western" class="category-label">洋食</label>
+                            </div>
+                            <div>
+                                <input type="radio" name="health-genre" value="中華" id="genre-chinese" class="sr-only">
+                                <label for="genre-chinese" class="category-label">中華</label>
+                            </div>
+                             <div>
+                                <input type="radio" name="health-genre" value="その他" id="genre-other" class="sr-only">
+                                <label for="genre-other" class="category-label">その他</label>
+                            </div>
+                        </div>
+                        <div id="health-other-genre-container" class="hidden max-w-md mx-auto mb-6">
+                             <input type="text" id="health-other-genre-input" class="form-input" placeholder="調理ジャンルを具体的に入力">
+                        </div>
+                        <div class="flex justify-center gap-4 mt-8">
+                            <button id="health-step2-back" class="step-button back-button">戻る</button>
+                            <button id="health-step2-next" class="step-button">次へ</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Add Details -->
+                    <div id="health-step-3" class="health-step">
+                        <h3 class="text-xl font-bold mb-3 text-center text-gray-300">ステップ3: 味付けや調理法の詳細</h3>
+                        <div class="max-w-lg mx-auto">
+                            <textarea id="health-cooking-details-input" class="form-textarea h-32" placeholder="例：甘辛く煮付ける、子供向けに辛さ控えめ、さっぱりとした塩味で"></textarea>
+                        </div>
+                        <div class="flex justify-center gap-4 mt-8">
+                            <button id="health-step3-back" class="step-button back-button">戻る</button>
+                            <button id="health-generate-btn" class="generate-button">生成する</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4: Results -->
+                    <div id="health-step-4" class="health-step">
+                         <div id="health-result-container" class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-900/50 p-6 rounded-lg">
+                            <div>
+                                <h3 class="text-2xl font-bold mb-4 text-center">調理後イメージ</h3>
+                                <img id="health-result-image" src="" alt="Generated dish" class="mx-auto rounded-lg max-w-full h-auto">
+                            </div>
+                            <div class="space-y-6">
+                                <div>
+                                    <h3 class="text-2xl font-bold mb-4 text-center">レシピ</h3>
+                                    <div id="health-recipe-output" class="text-left space-y-4"></div>
+                                </div>
+                                 <div>
+                                    <h3 class="text-2xl font-bold mb-4 text-center">健康効果レポート</h3>
+                                    <div id="health-analysis-output" class="text-left space-y-4"></div>
+                                </div>
+                            </div>
+                            <p id="health-error-message" class="text-red-400 text-center mt-4 md:col-span-2"></p>
+                        </div>
+                        <div class="text-center mt-8">
+                            <button id="health-start-over" class="step-button">最初からやり直す</button>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="mt-8 bg-gray-800/50 p-6 rounded-lg">
+                    <h3 class="text-lg font-bold mb-2">使い方</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                        <li>「ステップ1」で、冷蔵庫にあるお肉やお野菜など、使いたい食材の写真をアップロードします。</li>
+                        <li>「ステップ2」で、和食、洋食、中華など、食べたい料理のジャンルを選択します。</li>
+                        <li>「ステップ3」で、「子供向けに甘めの味付け」「お酒に合う濃いめの味」といった、より具体的なリクエストを入力します。</li>
+                        <li>「生成する」ボタンを押すと、AIが「調理後のイメージ写真」「具体的なレシピ」「その食材の健康効果レポート」の３つを同時に作成してくれます。</li>
+                    </ol>
+                    <h3 class="text-lg font-bold mt-6 mb-2">うまく使うためのコツ</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-300">
+                        <li><strong class="text-purple-300">食材ははっきりと:</strong> AIが食材を正確に認識できるよう、明るい場所で、食材全体がはっきりと写るように撮影してください。</li>
+                        <li><strong class="text-purple-300">複数の食材もOK:</strong> 冷蔵庫の余り物を一掃したい時など、複数の食材を一枚の写真に写してアップロードすると、AIがそれらを組み合わせたレシピを提案してくれます。</li>
+                        <li><strong class="text-purple-300">具体的なリクエストが鍵:</strong> 「ダイエット中なのでヘルシーに」「15分でできる時短料理」など、あなたの状況や要望を詳しく伝えることで、より希望に沿ったレシピが生成されます。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loader-container" class="loader-container hidden">
+        <div class="loader"></div>
+        <p id="loader-text" class="text-lg font-semibold"></p>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Common Hub Logic ---
+        const loaderContainer = document.getElementById('loader-container');
+        const loaderText = document.getElementById('loader-text');
+        const showLoader = (text) => {
+            loaderText.textContent = text;
+            loaderContainer.classList.remove('hidden');
+        };
+        const hideLoader = () => {
+            loaderContainer.classList.add('hidden');
+        };
+        const handleRouting = () => {
+            const tool = new URLSearchParams(window.location.hash.slice(1)).get('tool') || 'tryon';
+            document.querySelectorAll('.tool-container').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-button').forEach(el => el.classList.remove('active'));
+            const targetToolEl = document.getElementById(`${tool}-tool`);
+            const targetNavEl = document.querySelector(`.nav-button[data-tool="${tool}"]`);
+            if (targetToolEl && targetNavEl) {
+                targetToolEl.classList.add('active');
+                targetNavEl.classList.add('active');
+            }
+        };
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.addEventListener('click', () => {
+                window.location.hash = `tool=${button.dataset.tool}`;
+            });
+        });
+        window.addEventListener('hashchange', handleRouting);
+        
+        // --- Tool Initializations ---
+        initVirtualTryOnTool();
+        initFigureGenerationTool();
+        initAvatarGenerationTool();
+        initInteriorDesignerTool();
+        initFoodStylistTool();
+        initHealthChefTool();
+
+        handleRouting();
+
+        // --- Common Helper Functions ---
+        function setupUpload(box, input, preview, filenameEl, onFileSelected) {
+            box.addEventListener('click', () => input.click());
+            box.addEventListener('dragover', (e) => { e.preventDefault(); box.classList.add('border-purple-500', 'bg-gray-700'); });
+            box.addEventListener('dragleave', () => box.classList.remove('border-purple-500', 'bg-gray-700'));
+            box.addEventListener('drop', (e) => {
+                e.preventDefault();
+                box.classList.remove('border-purple-500', 'bg-gray-700');
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0], preview, filenameEl, onFileSelected);
+                }
+            });
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFile(e.target.files[0], preview, filenameEl, onFileSelected);
+                }
+            });
+        }
+        function handleFile(file, previewEl, filenameEl, onFileSelected) {
+            previewEl.src = URL.createObjectURL(file);
+            previewEl.classList.remove('hidden');
+            filenameEl.textContent = file.name;
+            onFileSelected(file);
+        }
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve({
+                    data: reader.result.split(',')[1],
+                    mimeType: file.type
+                });
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            let lastError;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status === 429) {
+                        const delay = (2 ** i) * 1000 + Math.random() * 1000;
+                        console.warn(`API rate limit exceeded. Retrying after ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+                        showLoader(`APIが混み合っています。リトライしています... (${i + 1}/${maxRetries})`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        console.error("API Error Response:", errorBody);
+                        throw new Error(`APIサーバーエラー: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    lastError = error;
+                    if (i < maxRetries - 1) {
+                       const delay = (2 ** i) * 1000 + Math.random() * 1000;
+                       console.warn(`Fetch failed. Retrying after ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+                       await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+            }
+            throw lastError;
+        }
+
+        async function callImageGenerationAPI(payload) {
+            const apiKey = "AIzaSyDi6pmHHtDRt9uIcGx0RYOgGUs8vBRTUFM";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+            const response = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+            if (!base64Data) {
+                console.error("No image data in API response:", JSON.stringify(result, null, 2));
+                throw new Error("APIから画像データが返されませんでした。モデルが不安定な可能性があります。");
+            }
+            return base64Data;
+        }
+
+        async function callTextGenerationAPI(contents, schema) {
+            const apiKey = "AIzaSyDi6pmHHtDRt9uIcGx0RYOgGUs8vBRTUFM";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: contents,
+                generationConfig: { 
+                    responseMimeType: "application/json",
+                    responseSchema: schema
+                }
+            };
+            const response = await fetchWithRetry(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+            if (!response.ok) throw new Error(`Text API Error: ${response.status} ${response.statusText}`);
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text) throw new Error("テキストAPIから有効な応答がありませんでした。");
+            return JSON.parse(text);
+        }
+
+        // --- Virtual Try-On Tool ---
+        function initVirtualTryOnTool() {
+            const personUploadBox = document.getElementById('tryon-person-upload-box');
+            const personInput = document.getElementById('tryon-person-input');
+            const personPreview = document.getElementById('tryon-person-preview');
+            const personFilename = document.getElementById('tryon-person-filename');
+            const clothingUploadBox = document.getElementById('tryon-clothing-upload-box');
+            const clothingInput = document.getElementById('tryon-clothing-input');
+            const clothingPreview = document.getElementById('tryon-clothing-preview');
+            const clothingFilename = document.getElementById('tryon-clothing-filename');
+            const generateBtn = document.getElementById('tryon-generate-btn');
+            const resultContainer = document.getElementById('tryon-result-container');
+            const resultImage = document.getElementById('tryon-result-image');
+            const errorMessage = document.getElementById('tryon-error-message');
+            const categorySelector = document.getElementById('tryon-category-selector');
+            const itemTitle = document.getElementById('tryon-item-title');
+            let personFile = null, clothingFile = null;
+            const checkFilesReady = () => { generateBtn.disabled = !(personFile && clothingFile); };
+            setupUpload(personUploadBox, personInput, personPreview, personFilename, (file) => { personFile = file; checkFilesReady(); });
+            setupUpload(clothingUploadBox, clothingInput, clothingPreview, clothingFilename, (file) => { clothingFile = file; checkFilesReady(); });
+            categorySelector.addEventListener('change', (e) => {
+                const selected = e.target.value;
+                if (selected === 'clothing') itemTitle.textContent = '2. 服の画像';
+                else if (selected === 'glasses') itemTitle.textContent = '2. 眼鏡の画像';
+                else if (selected === 'hairstyle') itemTitle.textContent = '2. ヘアースタイルの画像';
+            });
+            generateBtn.addEventListener('click', async () => {
+                if (!personFile || !clothingFile) return;
+                showLoader('AIが試着画像を生成中です...');
+                resultContainer.classList.add('hidden');
+                errorMessage.textContent = '';
+                try {
+                    const personImage = await fileToBase64(personFile);
+                    const itemImage = await fileToBase64(clothingFile);
+                    const selectedCategory = document.querySelector('input[name="tryon-category"]:checked').value;
+                    let userPrompt = '';
+                    switch(selectedCategory) {
+                        case 'glasses':
+                            userPrompt = `[COMMAND] IMAGE_EDIT\n[INPUT_IMAGE_1_ROLE] Base face model.\n[INPUT_IMAGE_2_ROLE] Glasses style reference.\n[INSTRUCTION] Apply the glasses from image 2 onto the person in image 1. Maintain original face, expression, and hair.\n[OUTPUT] High-quality, realistic image. NO TEXT.`;
+                            break;
+                        case 'hairstyle':
+                            userPrompt = `[COMMAND] IMAGE_EDIT\n[INPUT_IMAGE_1_ROLE] Base face model.\n[INPUT_IMAGE_2_ROLE] Hairstyle reference.\n[INSTRUCTION] Apply the hairstyle from image 2 onto the person in image 1. Maintain original facial features.\n[OUTPUT] High-quality, realistic image. NO TEXT.`;
+                            break;
+                        case 'clothing':
+                        default:
+                            userPrompt = `[COMMAND] IMAGE_EDIT\n[INPUT_IMAGE_1_ROLE] Base model for pose, face, body, and background.\n[INPUT_IMAGE_2_ROLE] Clothing style reference.\n[INSTRUCTION] Replace the clothing on the person in image 1 with the clothing from image 2. Maintain everything else from image 1.\n[OUTPUT] High-quality, realistic image. NO TEXT.`;
+                            break;
+                    }
+                    const payload = {
+                        contents: [{ parts: [ { text: userPrompt }, { inlineData: { mimeType: personImage.mimeType, data: personImage.data } }, { inlineData: { mimeType: itemImage.mimeType, data: itemImage.data } } ] }],
+                        generationConfig: { responseModalities: ['IMAGE'] },
+                    };
+                    const response = await callImageGenerationAPI(payload);
+                    resultImage.src = `data:image/png;base64,${response}`;
+                    resultContainer.classList.remove('hidden');
+                } catch (error) {
+                    errorMessage.textContent = `エラーが発生しました: ${error.message}`;
+                    resultContainer.classList.remove('hidden');
+                    resultImage.src = '';
+                } finally { hideLoader(); }
+            });
+        }
+
+        // --- Figure Generation Tool ---
+        function initFigureGenerationTool() {
+            const imageUploadBox = document.getElementById('figure-image-upload-box');
+            const imageInput = document.getElementById('figure-image-input');
+            const imagePreview = document.getElementById('figure-image-preview');
+            const imageFilename = document.getElementById('figure-image-filename');
+            const generateBtn = document.getElementById('figure-generate-btn');
+            const resultContainer = document.getElementById('figure-result-container');
+            const resultImage = document.getElementById('figure-result-image');
+            const errorMessage = document.getElementById('figure-error-message');
+            let imageFile = null;
+            setupUpload(imageUploadBox, imageInput, imagePreview, imageFilename, (file) => { 
+                imageFile = file;
+                generateBtn.disabled = false;
+            });
+            generateBtn.addEventListener('click', async () => {
+                if (!imageFile) return;
+                showLoader('AIがフィギュアを制作中です...');
+                resultContainer.classList.add('hidden');
+                errorMessage.textContent = '';
+                try {
+                    const image = await fileToBase64(imageFile);
+                    const userPrompt = `[COMMAND] IMAGE_TRANSFORMATION\n[INPUT_IMAGE_ROLE] Subject to be turned into a figure.\n[INSTRUCTION] Convert the subject into a high-quality collectible figure. Place it on a circular stand. Add a product package box with an illustration of the subject next to the figure. The background should be a simple studio setting.\n[OUTPUT] High-quality product shot image. NO TEXT.`;
+                    const payload = {
+                        contents: [{ parts: [ { text: userPrompt }, { inlineData: { mimeType: image.mimeType, data: image.data } } ] }],
+                        generationConfig: { responseModalities: ['IMAGE'] },
+                    };
+                    const response = await callImageGenerationAPI(payload);
+                    resultImage.src = `data:image/png;base64,${response}`;
+                    resultContainer.classList.remove('hidden');
+                } catch (error) {
+                    errorMessage.textContent = `エラーが発生しました: ${error.message}`;
+                    resultContainer.classList.remove('hidden');
+                    resultImage.src = '';
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+
+        // --- Avatar Generation Tool ---
+        function initAvatarGenerationTool() {
+            const personUploadBox = document.getElementById('avatar-person-upload-box');
+            const personInput = document.getElementById('avatar-person-input');
+            const personPreview = document.getElementById('avatar-person-preview');
+            const personFilename = document.getElementById('avatar-person-filename');
+            const styleUploadBox = document.getElementById('avatar-style-upload-box');
+            const styleInput = document.getElementById('avatar-style-input');
+            const stylePreview = document.getElementById('avatar-style-preview');
+            const styleFilename = document.getElementById('avatar-style-filename');
+            const generateBtn = document.getElementById('avatar-generate-btn');
+            const resultContainer = document.getElementById('avatar-result-container');
+            const resultImage = document.getElementById('avatar-result-image');
+            const errorMessage = document.getElementById('avatar-error-message');
+            let personFile = null, styleFile = null;
+            const checkFilesReady = () => { generateBtn.disabled = !(personFile && styleFile); };
+            setupUpload(personUploadBox, personInput, personPreview, personFilename, (file) => { personFile = file; checkFilesReady(); });
+            setupUpload(styleUploadBox, styleInput, stylePreview, styleFilename, (file) => { styleFile = file; checkFilesReady(); });
+            generateBtn.addEventListener('click', async () => {
+                if (!personFile || !styleFile) return;
+                showLoader('AIがアバターを生成中です...');
+                resultContainer.classList.add('hidden');
+                errorMessage.textContent = '';
+                try {
+                    const personImage = await fileToBase64(personFile);
+                    const styleImage = await fileToBase64(styleFile);
+                    const userPrompt = `[COMMAND] STYLE_TRANSFER\n[INPUT_IMAGE_1_ROLE] Content image (person's face, hair, pose).\n[INPUT_IMAGE_2_ROLE] Style image (anime art style).\n[INSTRUCTION] Redraw the person from image 1 using the art style from image 2. Maintain the pose and facial features from image 1. The background should match the mood of image 2.\n[OUTPUT] High-quality avatar image. NO TEXT.`;
+                    const payload = {
+                        contents: [{ parts: [ { text: userPrompt }, { inlineData: { mimeType: personImage.mimeType, data: personImage.data } }, { inlineData: { mimeType: styleImage.mimeType, data: styleImage.data } } ] }],
+                        generationConfig: { responseModalities: ['IMAGE'] },
+                    };
+                    const response = await callImageGenerationAPI(payload);
+                    resultImage.src = `data:image/png;base64,${response}`;
+                    resultContainer.classList.remove('hidden');
+                } catch (error) {
+                    errorMessage.textContent = `エラーが発生しました: ${error.message}`;
+                    resultContainer.classList.remove('hidden');
+                    resultImage.src = '';
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+        
+        // --- Interior Designer Tool ---
+        function initInteriorDesignerTool() {
+            const uploadBox = document.getElementById('interior-room-upload-box');
+            const input = document.getElementById('interior-room-input');
+            const preview = document.getElementById('interior-room-preview');
+            const filename = document.getElementById('interior-room-filename');
+            const styleSelect = document.getElementById('interior-style-select');
+            const generateBtn = document.getElementById('interior-generate-btn');
+            const resultContainer = document.getElementById('interior-result-container');
+            const resultImage = document.getElementById('interior-result-image');
+            const errorMessage = document.getElementById('interior-error-message');
+            let roomFile = null;
+            setupUpload(uploadBox, input, preview, filename, (file) => {
+                roomFile = file;
+                generateBtn.disabled = false;
+            });
+            generateBtn.addEventListener('click', async () => {
+                if (!roomFile) return;
+                showLoader('AIがデザインを生成中です...');
+                resultContainer.classList.add('hidden');
+                errorMessage.textContent = '';
+                try {
+                    const roomImage = await fileToBase64(roomFile);
+                    const selectedStyle = styleSelect.value;
+                    const userPrompt = `[COMMAND] IMAGE_EDIT\n[INPUT_IMAGE_ROLE] Base room structure.\n[INSTRUCTION] Redesign the room in a '${selectedStyle}' style. Maintain the original structure (walls, windows). \n[OUTPUT] High-quality, realistic image. NO TEXT.`;
+                    const payload = {
+                        contents: [{ parts: [ { text: userPrompt }, { inlineData: { mimeType: roomImage.mimeType, data: roomImage.data } } ] }],
+                        generationConfig: { responseModalities: ['IMAGE'] },
+                    };
+                    const response = await callImageGenerationAPI(payload);
+                    resultImage.src = `data:image/png;base64,${response}`;
+                    resultContainer.classList.remove('hidden');
+                } catch (error) {
+                    errorMessage.textContent = `エラーが発生しました: ${error.message}`;
+                    resultContainer.classList.remove('hidden');
+                    resultImage.src = '';
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+        
+        // --- Food Stylist Tool (New Conversational Logic) ---
+        function initFoodStylistTool() {
+            const steps = [
+                document.getElementById('food-step-1'),
+                document.getElementById('food-step-2'),
+                document.getElementById('food-step-3')
+            ];
+            const ideaInput = document.getElementById('food-idea-input');
+            const next1 = document.getElementById('food-step1-next');
+            const back2 = document.getElementById('food-step2-back');
+            const descriptionInput = document.getElementById('food-description-input');
+            const generateBtn = document.getElementById('food-generate-btn');
+            const startOverBtn = document.getElementById('food-start-over');
+            const resultImage = document.getElementById('food-result-image');
+            const errorMessage = document.getElementById('food-error-message');
+
+            let currentState = { step: 1, idea: '', description: '' };
+
+            function showStep(stepNumber) {
+                steps.forEach((el, index) => {
+                    el.classList.toggle('active', index + 1 === stepNumber);
+                });
+                currentState.step = stepNumber;
+            }
+
+            function resetTool() {
+                currentState = { step: 1, idea: '', description: '' };
+                ideaInput.value = '';
+                descriptionInput.value = '';
+                errorMessage.textContent = '';
+                resultImage.src = '';
+                showStep(1);
+            }
+
+            next1.addEventListener('click', async () => {
+                const idea = ideaInput.value.trim();
+                if (!idea) {
+                    ideaInput.style.borderColor = 'red';
+                    setTimeout(() => ideaInput.style.borderColor = '#4B5563', 1000);
+                    return;
+                }
+                ideaInput.style.borderColor = '#4B5563';
+                currentState.idea = idea;
+                showLoader('AIが説明文を考えています...');
+                try {
+                    const prompt = `ユーザーが食べたい料理は「${idea}」です。この料理を元に、プロのフードライターのように、五感を刺激する美味しそうな説明文（150字以内）を考えてください。出力は必ず以下のJSON形式でお願いします:\n`;
+                    const schema = {
+                        type: "OBJECT",
+                        properties: {
+                            description: { type: "STRING", description: "生成された料理の説明文" }
+                        },
+                        required: ["description"]
+                    };
+                    const response = await callTextGenerationAPI([{ parts: [{ text: prompt }] }], schema);
+                    currentState.description = response.description;
+                    descriptionInput.value = response.description;
+                    showStep(2);
+                } catch (error) {
+                    alert(`説明文の生成に失敗しました: ${error.message}`);
+                } finally {
+                    hideLoader();
+                }
+            });
+
+            back2.addEventListener('click', () => showStep(1));
+            startOverBtn.addEventListener('click', resetTool);
+
+            generateBtn.addEventListener('click', async () => {
+                const description = descriptionInput.value.trim();
+                if (!description) return;
+                currentState.description = description;
+
+                showStep(3);
+                showLoader('AIが料理写真を生成中です...');
+                errorMessage.textContent = '';
+
+                try {
+                    const userPrompt = `[COMMAND] TEXT_TO_IMAGE\n[INSTRUCTION] Generate a high-quality, professional food photograph of the following dish: "${description}". The image should be bright, styled with fashionable tableware, and look delicious.\n[OUTPUT] High-quality food photograph. NO TEXT.`;
+                    const payload = {
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        generationConfig: { responseModalities: ['IMAGE'] },
+                    };
+                    const response = await callImageGenerationAPI(payload);
+                    resultImage.src = `data:image/png;base64,${response}`;
+                } catch (error) {
+                    console.error("Food Stylist generation failed:", error);
+                    const message = error && error.message ? error.message : '不明なエラーが発生しました。';
+                    errorMessage.textContent = `エラーが発生しました: ${message}`;
+                    resultImage.src = '';
+                } finally {
+                    hideLoader();
+                }
+            });
+
+            resetTool();
+        }
+
+        // --- AI Health Chef Tool (New Conversational Logic) ---
+        function initHealthChefTool() {
+            const steps = [
+                document.getElementById('health-step-1'),
+                document.getElementById('health-step-2'),
+                document.getElementById('health-step-3'),
+                document.getElementById('health-step-4')
+            ];
+            const next1 = document.getElementById('health-step1-next');
+            const back2 = document.getElementById('health-step2-back');
+            const next2 = document.getElementById('health-step2-next');
+            const back3 = document.getElementById('health-step3-back');
+            const generateBtn = document.getElementById('health-generate-btn');
+            const startOverBtn = document.getElementById('health-start-over');
+            
+            const uploadBox = document.getElementById('health-ingredient-upload-box');
+            const healthInput = document.getElementById('health-ingredient-input');
+            const preview = document.getElementById('health-ingredient-preview');
+            const filename = document.getElementById('health-ingredient-filename');
+            
+            const genreSelector = document.getElementById('health-genre-selector');
+            const otherGenreContainer = document.getElementById('health-other-genre-container');
+            const otherGenreInput = document.getElementById('health-other-genre-input');
+            const cookingDetailsInput = document.getElementById('health-cooking-details-input');
+
+            const resultImage = document.getElementById('health-result-image');
+            const recipeOutput = document.getElementById('health-recipe-output');
+            const analysisOutput = document.getElementById('health-analysis-output');
+            const errorMessage = document.getElementById('health-error-message');
+
+            let currentState = {
+                step: 1,
+                ingredientFile: null,
+                cookingGenre: '和食',
+                cookingDetails: ''
+            };
+
+            function showStep(stepNumber) {
+                steps.forEach((el, index) => {
+                    el.classList.toggle('active', index + 1 === stepNumber);
+                });
+                currentState.step = stepNumber;
+            }
+
+            function resetTool() {
+                currentState = { step: 1, ingredientFile: null, cookingGenre: '和食', cookingDetails: '' };
+                preview.classList.add('hidden');
+                filename.textContent = '';
+                healthInput.value = '';
+                next1.disabled = true;
+                document.getElementById('genre-japanese').checked = true;
+                otherGenreContainer.classList.add('hidden');
+                otherGenreInput.value = '';
+                cookingDetailsInput.value = '';
+                errorMessage.textContent = '';
+                recipeOutput.innerHTML = '';
+                analysisOutput.innerHTML = '';
+                resultImage.src = '';
+                showStep(1);
+            }
+
+            setupUpload(uploadBox, healthInput, preview, filename, (file) => {
+                currentState.ingredientFile = file;
+                next1.disabled = false;
+            });
+
+            next1.addEventListener('click', () => showStep(2));
+            back2.addEventListener('click', () => showStep(1));
+            next2.addEventListener('click', () => showStep(3));
+            back3.addEventListener('click', () => showStep(2));
+            startOverBtn.addEventListener('click', resetTool);
+            
+            genreSelector.addEventListener('change', (e) => {
+                const selectedGenre = e.target.value;
+                otherGenreContainer.classList.toggle('hidden', selectedGenre !== 'その他');
+            });
+
+            generateBtn.addEventListener('click', async () => {
+                if (!currentState.ingredientFile) return;
+                
+                let genre = document.querySelector('input[name="health-genre"]:checked').value;
+                if (genre === 'その他') {
+                    genre = otherGenreInput.value.trim() || 'おまかせ';
+                }
+                currentState.cookingGenre = genre;
+                currentState.cookingDetails = cookingDetailsInput.value.trim();
+
+                showStep(4);
+                showLoader('AIがレシピと健康効果を分析中です...');
+                errorMessage.textContent = '';
+                resultImage.src = '';
+                recipeOutput.innerHTML = '';
+                analysisOutput.innerHTML = '';
+
+                try {
+                    const ingredientImage = await fileToBase64(currentState.ingredientFile);
+                    
+                    const fullCookingStyle = `${currentState.cookingGenre}で、${currentState.cookingDetails || 'シェフのおまかせで美味しく調理'}`;
+
+                    // --- Define API Payloads ---
+                    const imagePrompt = `[COMMAND] TEXT_AND_IMAGE_TO_IMAGE\n[INPUT_IMAGE_ROLE] Main ingredient.\n[INSTRUCTION] Generate a high-quality, professional food photograph of a dish made from the ingredient in the image, prepared in the following style: "${fullCookingStyle}".\n[OUTPUT] High-quality food photograph. NO TEXT.`;
+                    const imagePayload = {
+                        contents: [{ parts: [ { text: imagePrompt }, { inlineData: { mimeType: ingredientImage.mimeType, data: ingredientImage.data } } ] }],
+                        generationConfig: { responseModalities: ['IMAGE'] },
+                    };
+
+                    const recipePrompt = `この画像に写っている食材を使って、「${fullCookingStyle}」というテーマで、家庭で簡単に作れるレシピを考案してください。出力は必ず以下のJSON形式でお願いします:\n`;
+                    const recipeSchema = {
+                        type: "OBJECT",
+                        properties: {
+                            recipeName: { type: "STRING", description: "料理名" },
+                            ingredients: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        name: { type: "STRING", description: "材料名" },
+                                        quantity: { type: "STRING", description: "分量" }
+                                    },
+                                    required: ["name", "quantity"]
+                                }
+                            },
+                            instructions: {
+                                type: "ARRAY",
+                                items: { type: "STRING", description: "調理手順" }
+                            }
+                        },
+                        required: ["recipeName", "ingredients", "instructions"]
+                    };
+                    const recipeContents = [{ parts: [ { text: recipePrompt }, { inlineData: { mimeType: ingredientImage.mimeType, data: ingredientImage.data } } ] }];
+
+                    const analysisPrompt = `この画像に写っている食材を特定し、その食材に含まれる主要な栄養素と、それらがどのような成人病（生活習慣病）の予防や対策に効果的か、具体的な効果と共に分析してください。出力は必ず以下のJSON形式でお願いします:\n`;
+                    const analysisSchema = {
+                        type: "OBJECT",
+                        properties: {
+                            ingredientName: { type: "STRING", description: "食材名" },
+                            nutrients: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        name: { type: "STRING", description: "栄養素名" },
+                                        effect: { type: "STRING", description: "具体的な健康効果や成人病対策への貢献" }
+                                    },
+                                    required: ["name", "effect"]
+                                }
+                            },
+                            summary: { type: "STRING", description: "総合的な健康効果の要約" }
+                        },
+                        required: ["ingredientName", "nutrients", "summary"]
+                    };
+                    const analysisContents = [{ parts: [ { text: analysisPrompt }, { inlineData: { mimeType: ingredientImage.mimeType, data: ingredientImage.data } } ] }];
+
+                    // --- Call APIs Concurrently ---
+                    const imagePromise = callImageGenerationAPI(imagePayload).catch(error => ({ error: true, message: error.message || '不明な画像生成エラー' }));
+                    const recipePromise = callTextGenerationAPI(recipeContents, recipeSchema).catch(error => ({ error: true, message: error.message || '不明なレシピ生成エラー' }));
+                    const analysisPromise = callTextGenerationAPI(analysisContents, analysisSchema).catch(error => ({ error: true, message: error.message || '不明な健康効果分析エラー' }));
+                    
+                    const [imageResult, recipeResult, analysisResult] = await Promise.all([imagePromise, recipePromise, analysisPromise]);
+
+                    // --- Display Results ---
+                    let errorMessages = [];
+                    if (imageResult && !imageResult.error) {
+                        resultImage.src = `data:image/png;base64,${imageResult}`;
+                    } else {
+                        resultImage.src = `https://placehold.co/512x512/1f2937/d1d5db?text=画像生成失敗`;
+                        errorMessages.push(`画像生成エラー: ${imageResult?.message}`);
+                    }
+
+                    if (recipeResult && !recipeResult.error) {
+                        let recipeHTML = `<h4 class="text-xl font-bold text-purple-300">${recipeResult.recipeName}</h4>`;
+                        recipeHTML += '<h5 class="font-bold mt-4 mb-2">材料:</h5><ul class="list-disc list-inside text-sm">';
+                        recipeResult.ingredients.forEach(ing => {
+                           recipeHTML += `<li>${ing.name} - ${ing.quantity}</li>`;
+                        });
+                        recipeHTML += '</ul><h5 class="font-bold mt-4 mb-2">作り方:</h5><ol class="list-decimal list-inside text-sm space-y-2">';
+                        recipeResult.instructions.forEach(step => {
+                           recipeHTML += `<li>${step}</li>`;
+                        });
+                        recipeHTML += '</ol>';
+                        recipeOutput.innerHTML = recipeHTML;
+                    } else {
+                        recipeOutput.innerHTML = `<div class="text-red-400 p-2 bg-red-900/50 rounded-lg">レシピの生成に失敗しました。</div>`;
+                        errorMessages.push(`レシピ生成エラー: ${recipeResult?.message}`);
+                    }
+
+                    if (analysisResult && !analysisResult.error) {
+                        let analysisHTML = `<h4 class="text-xl font-bold text-purple-300">${analysisResult.ingredientName}の健康効果</h4>`;
+                        analysisHTML += `<p class="text-sm text-gray-400 mt-2">${analysisResult.summary}</p>`;
+                        analysisHTML += '<ul class="mt-4 space-y-3">';
+                        analysisResult.nutrients.forEach(nutrient => {
+                            analysisHTML += `<li class="p-3 bg-gray-700/50 rounded-lg"><strong class="font-bold text-purple-400">${nutrient.name}:</strong><br><span class="text-sm">${nutrient.effect}</span></li>`;
+                        });
+                        analysisHTML += '</ul>';
+                        analysisOutput.innerHTML = analysisHTML;
+                    } else {
+                        analysisOutput.innerHTML = `<div class="text-red-400 p-2 bg-red-900/50 rounded-lg">健康効果の分析に失敗しました。</div>`;
+                        errorMessages.push(`健康分析エラー: ${analysisResult?.message}`);
+                    }
+
+                    if (errorMessages.length > 0) {
+                        errorMessage.textContent = errorMessages.join('\n');
+                    }
+
+                } catch (error) {
+                    console.error('Health Chef failed unexpectedly:', error);
+                    errorMessage.textContent = `予期せぬエラーが発生しました: ${error && error.message ? error.message : '不明なエラー'}`;
+                } finally {
+                    hideLoader();
+                }
+            });
+            
+            resetTool(); // Initialize on load
+        }
+    });
+</script>
+</body>
+</html>
+
+
