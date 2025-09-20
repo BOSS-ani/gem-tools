@@ -607,20 +607,10 @@
                     return;
                 }
                 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/text:synthesize?key=${apiKey}`; // This endpoint is fictional for Gemini, real one is different
-                const payload = {
-                    // This payload structure is fictional for Gemini TTS, which is not yet generally available via this type of endpoint.
-                    // This is a placeholder for a future implementation.
-                    input: { text: text },
-                    voice: { languageCode: 'ja-JP' },
-                    audioConfig: { audioEncoding: 'MP3' }
-                };
+                // Note: Gemini API does not have a public TTS endpoint like this. 
+                // This code is illustrative and would need to be adapted to the Google Cloud Text-to-Speech API.
                 try {
-                     // The following is based on a hypothetical future Gemini TTS API structure.
-                     // The actual Text-to-Speech API from Google is under the Cloud Text-to-Speech product.
-                     // For this tool, we'll simulate the call and alert the user.
-                    alert("音声合成機能は現在、Google Cloud Text-to-Speech APIへの接続が必要です。このデモでは、読み方生成までをサポートします。");
-
+                    alert("音声合成機能は現在、Google Cloud Text-to-Speech APIへの別途接続が必要です。このツールでは、読み方生成までをサポートします。");
                 } catch (error) {
                     alert(`音声変換エラー: ${error.message}`);
                 } finally { hideLoader(); }
@@ -885,7 +875,7 @@
         setupCopyButton(document.querySelector('#youtube-result-section [data-target="youtube-title-output"]'), document.getElementById('copy-youtube-feedback'));
         setupCopyButton(document.querySelector('#youtube-result-section [data-target="youtube-desc-output"]'), document.getElementById('copy-youtube-feedback'));
 
-        // --- Common Gemini API Call Function (MODIFIED) ---
+        // --- Common Gemini API Call Function ---
         async function callGeminiAPI(prompt, jsonResponse = false, useSearch = false) {
             const apiKey = getApiKey();
             if (!apiKey) {
@@ -899,12 +889,18 @@
                 payload.generationConfig = { responseMimeType: "application/json" };
             }
             if (useSearch) {
-                payload.tools = [{ "google.search_retrieval": {} }];
+                // 【最終修正】Googleの仕様変更に対応する、最も確実な記述
+                payload.tools = [{ "googleSearchRetrieval": {} }];
             }
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             if (!response.ok) {
-                const errorBody = await response.json().catch(() => ({ error: { message: `API Error: ${response.status}` } }));
-                const errorMessage = errorBody.error?.message || `API Error: ${response.status}`;
+                let errorMessage = `API Error: ${response.status}`;
+                try {
+                    const errorBody = await response.json();
+                    errorMessage = errorBody.error?.message || JSON.stringify(errorBody);
+                } catch (e) {
+                    errorMessage = await response.text();
+                }
                 throw new Error(errorMessage);
             }
             const result = await response.json();
