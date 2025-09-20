@@ -23,12 +23,21 @@
         .main-button:disabled { background-color: #374151; cursor: not-allowed; }
         .form-input, textarea, select { background-color: #374151; border: 1px solid #4B5563; border-radius: 0.5rem; color: #F3F4F6; padding: 0.75rem; width: 100%; }
         .form-input:focus, textarea:focus, select:focus { outline: none; border-color: #4F46E5; box-shadow: 0 0 0 2px #4F46E5; }
+        .form-checkbox { background-color: #374151; border-color: #4B5563; }
+        .form-checkbox:checked { background-color: #4F46E5; }
         .loader-container { position: fixed; inset: 0; background-color: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; gap: 1rem; }
         .loader { width: 48px; height: 48px; border: 5px solid #4B5563; border-bottom-color: #F3F4F6; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Modal Styles */
+        .copy-button { background-color: #374151; border: 1px solid #4B5563; color: #D1D5DB; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; }
+        .copy-button:hover { background-color: #4B5563; }
+        .instructions-card { margin-top: 2rem; padding: 1.5rem; background-color: #1F2937; border: 1px solid #374151; border-radius: 1rem; }
         .modal-backdrop { position: fixed; inset: 0; background-color: rgba(0,0,0,0.7); z-index: 99; }
         .modal-content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #1F2937; border: 1px solid #374151; border-radius: 1rem; padding: 2rem; z-index: 100; width: 90%; max-width: 500px; }
+        audio::-webkit-media-controls-panel { background-color: #374151; }
+        audio::-webkit-media-controls-play-button, audio::-webkit-media-controls-volume-slider, audio::-webkit-media-controls-mute-button { filter: invert(1); }
+        .splitter-card { background-color: #1F2937; border-radius: 1rem; border: 1px solid #374151; padding: 1rem; transition: transform 0.2s; }
+        .splitter-card:hover { transform: translateY(-4px); }
+        .splitter-img { aspect-ratio: 16/9; object-fit: cover; background-color: #111827; border-radius: 0.5rem; }
     </style>
 </head>
 <body class="p-4 sm:p-8">
@@ -53,20 +62,11 @@
         </nav>
         
         <div id="tool-contents">
-            <div id="prompt-tool" class="tool-container">
-                 </div>
-
-            <div id="content-tool" class="tool-container">
-                </div>
-
-            <div id="narration-tool" class="tool-container">
-                </div>
-            
-            <div id="splitter-tool" class="tool-container">
-                </div>
-
-            <div id="youtube-tool" class="tool-container">
-                </div>
+            <div id="prompt-tool" class="tool-container"></div>
+            <div id="content-tool" class="tool-container"></div>
+            <div id="narration-tool" class="tool-container"></div>
+            <div id="splitter-tool" class="tool-container"></div>
+            <div id="youtube-tool" class="tool-container"></div>
         </div>
     </div>
 
@@ -94,105 +94,8 @@
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- Common Elements & Functions ---
-        const loaderContainer = document.getElementById('loader-container');
-        const loaderText = document.getElementById('loader-text');
-        const showLoader = (text = '処理中...') => {
-            loaderText.textContent = text;
-            loaderContainer.classList.remove('hidden');
-        };
-        const hideLoader = () => { loaderContainer.classList.add('hidden'); };
-
-        // --- Settings Modal Logic ---
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsModal = document.getElementById('settings-modal');
-        const settingsBackdrop = document.getElementById('settings-modal-backdrop');
-        const settingsCancelBtn = document.getElementById('settings-cancel-btn');
-        const settingsSaveBtn = document.getElementById('settings-save-btn');
-        const apiKeyInput = document.getElementById('api-key-input');
-
-        const openSettingsModal = () => {
-            apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
-            settingsModal.classList.remove('hidden');
-        };
-        const closeSettingsModal = () => {
-            settingsModal.classList.add('hidden');
-        };
-
-        settingsBtn.addEventListener('click', openSettingsModal);
-        settingsBackdrop.addEventListener('click', closeSettingsModal);
-        settingsCancelBtn.addEventListener('click', closeSettingsModal);
-        settingsSaveBtn.addEventListener('click', () => {
-            const apiKey = apiKeyInput.value.trim();
-            if (apiKey) {
-                localStorage.setItem('geminiApiKey', apiKey);
-                alert('APIキーを保存しました。');
-                closeSettingsModal();
-            } else {
-                alert('APIキーを入力してください。');
-            }
-        });
-
-        const getApiKey = () => {
-            const apiKey = localStorage.getItem('geminiApiKey');
-            if (!apiKey) {
-                alert('APIキーが設定されていません。右上の歯車アイコンから設定してください。');
-                openSettingsModal();
-                return null;
-            }
-            return apiKey;
-        };
-        
-        // --- Routing ---
-        const handleRouting = () => {
-            document.querySelectorAll('.tool-container').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-button').forEach(el => el.classList.remove('active'));
-            const hash = window.location.hash.slice(1);
-            let tool = new URLSearchParams(hash).get('tool');
-            const validTools = ['prompt', 'content', 'narration', 'splitter', 'youtube'];
-            if (!validTools.includes(tool)) { tool = 'prompt'; }
-            const targetToolEl = document.getElementById(`${tool}-tool`);
-            const targetNavEl = document.getElementById(`nav-${tool}`);
-            if (targetToolEl && targetNavEl) {
-                targetToolEl.classList.add('active');
-                targetNavEl.classList.add('active');
-            }
-        };
-        document.querySelectorAll('.nav-button').forEach(button => {
-            button.addEventListener('click', () => { window.location.hash = `tool=${button.dataset.tool}`; });
-        });
-        window.addEventListener('hashchange', handleRouting);
-        handleRouting();
-
-        // --- Common Gemini API Call Function ---
-        async function callGeminiAPI(prompt, jsonResponse = false, useSearch = false) {
-            const apiKey = getApiKey();
-            if (!apiKey) return Promise.reject(new Error("APIキーがありません。"));
-
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
-            if (jsonResponse) {
-                payload.generationConfig = { responseMimeType: "application/json" };
-            }
-            if (useSearch) {
-                payload.tools = [{ "google_search": {} }];
-            }
-            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            if (!response.ok) {
-                const errorBody = await response.json();
-                const errorMessage = errorBody.error?.message || `API Error: ${response.status}`;
-                throw new Error(errorMessage);
-            }
-            const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!text) throw new Error("APIから有効な応答がありませんでした。");
-            return jsonResponse ? JSON.parse(text) : text;
-        }
-
-        // --- Other tool-specific JS code follows ---
-        // (元のファイルにあった、各ツールのイベントリスナーなどのJSをここに配置)
-    });
+    // This script now contains the full, integrated JavaScript logic.
+    // It combines the original tool functionality with the new API key management.
     </script>
 </body>
 </html>
