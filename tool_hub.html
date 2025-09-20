@@ -660,7 +660,11 @@
         };
         if (splitterAudioFileInput) splitterAudioFileInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
-            if (!file || segmentsContainer.children.length === 0) return;
+            if (!file || segmentsContainer.children.length === 0) {
+                if(segmentsContainer.children.length === 0) alert('先に分割数を設定し、「セクションを生成」ボタンを押してください。');
+                event.target.value = '';
+                return;
+            }
             showLoader('音声データを処理中...');
             try {
                 const arrayBuffer = await file.arrayBuffer();
@@ -675,6 +679,7 @@
         if (segmentsContainer) segmentsContainer.addEventListener('click', async (event) => {
             if (event.target.classList.contains('download-btn')) {
                 const button = event.target;
+                const originalText = button.textContent;
                 button.disabled = true;
                 button.textContent = '処理中...';
                 try {
@@ -687,15 +692,78 @@
                 }
             }
         });
-        function handleDownload(segmentId) { /* Download logic */ }
-        function encodeToMp3(audioBuffer) { /* MP3 encoding logic */ }
-        function floatTo16BitPCM(input, output) { /* PCM conversion logic */ }
+        function handleDownload(segmentId) {
+             return new Promise((resolve, reject) => {
+                if (!splitterAudioBuffer) return reject(new Error('音声ファイルが読み込まれていません。'));
+                const startTime = parseFloat(document.getElementById(`start-${segmentId}`).value);
+                const endTime = parseFloat(document.getElementById(`end-${segmentId}`).value);
+                if (isNaN(startTime) || isNaN(endTime) || startTime < 0 || endTime <= startTime) return reject(new Error('有効な時間を入力してください。'));
+                const startOffset = Math.floor(startTime * splitterAudioBuffer.sampleRate);
+                const endOffset = Math.floor(endTime * splitterAudioBuffer.sampleRate);
+                const frameCount = endOffset - startOffset;
+                if (frameCount <= 0) return reject(new Error('終了時間は開始時間より大きくする必要があります。'));
+                const newBuffer = splitterAudioContext.createBuffer(splitterAudioBuffer.numberOfChannels, frameCount, splitterAudioBuffer.sampleRate);
+                for (let i = 0; i < splitterAudioBuffer.numberOfChannels; i++) {
+                    newBuffer.getChannelData(i).set(splitterAudioBuffer.getChannelData(i).subarray(startOffset, endOffset));
+                }
+                const mp3Data = encodeToMp3(newBuffer);
+                const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `Part_${segmentId}.mp3`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                resolve();
+            });
+        }
+        function encodeToMp3(audioBuffer) {
+            const mp3encoder = new lamejs.Mp3Encoder(audioBuffer.numberOfChannels, audioBuffer.sampleRate, 128);
+            const mp3Data = [];
+            const pcmBuffer = [];
+            const channelData = [];
+            for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+                channelData.push(audioBuffer.getChannelData(i));
+                pcmBuffer.push(new Int16Array(audioBuffer.length));
+                floatTo16BitPCM(channelData[i], pcmBuffer[i]);
+            }
+            let remaining = pcmBuffer[0].length;
+            const bufferSize = 1152 * audioBuffer.numberOfChannels;
+            for (let i = 0; remaining >= bufferSize; i += bufferSize) {
+                const left = pcmBuffer[0].subarray(i, i + 1152);
+                const right = audioBuffer.numberOfChannels > 1 ? pcmBuffer[1].subarray(i, i + 1152) : left;
+                const mp3buf = mp3encoder.encodeBuffer(left, right);
+                if (mp3buf.length > 0) mp3Data.push(mp3buf);
+                remaining -= 1152;
+            }
+            const flushed = mp3encoder.flush();
+            if (flushed.length > 0) mp3Data.push(flushed);
+            return mp3Data;
+        }
+        function floatTo16BitPCM(input, output) {
+            for (let i = 0; i < input.length; i++) {
+                const s = Math.max(-1, Math.min(1, input[i]));
+                output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+        }
         
         // --- NotebookLM Prompt Generator ---
         const generatePromptBtn = document.getElementById('generate-prompt-btn');
-        if (generatePromptBtn) { /* Prompt generation logic */ }
+        if (generatePromptBtn) {
+            generatePromptBtn.addEventListener('click', () => {
+                const raceName = document.getElementById('prompt-race-name').value.trim();
+                const analysisType = document.getElementById('prompt-analysis-type').value;
+                const focusPoints = Array.from(document.querySelectorAll('input[name="focus-point"]:checked')).map(el => el.value);
+                if (!raceName) { alert('レース名を入力してください。'); return; }
+                const prompt = `あなたは優秀な競馬分析アシスタントです。\nNotebookLMにアップロードされた複数のソース（競馬ニュース、過去データ、調教映像の文字起こしなど）を横断的に分析し、以下の指示に従って「${raceName}」の分析レポートを作成してください。\n\n# 分析の目的\n${analysisType}\n\n# 分析の視点\n特に以下の点に重点を置いて、各ソースから関連情報を抽出し、統合・考察してください。\n- ${focusPoints.join('\n- ')}\n\n# 出力形式\n- まず、各分析視点に基づいた詳細な考察を記述してください。\n- 次に、考察から導き出される注目馬を3頭挙げ、その理由を明確に説明してください。\n- 最後に、分析全体の結論を簡潔にまとめてください。\n\nさあ、分析を開始してください。`;
+                document.getElementById('prompt-output').value = prompt;
+                document.getElementById('prompt-result-section').classList.remove('hidden');
+            });
+        }
         setupCopyButton(document.getElementById('copy-prompt-btn'), document.getElementById('copy-prompt-feedback'));
-        if (document.getElementById('copy-prompt-btn')) document.getElementById('copy-prompt-btn').dataset.target = 'prompt-output';
         
         // --- Content Generator (Step-by-Step) ---
         const generateStep1Btn = document.getElementById('generate-step1-btn');
@@ -772,13 +840,16 @@
                     mustInclude: document.getElementById('yt-must-include').value.trim(),
                 };
                 if (!inputs.raceName) { alert('レース名を入力してください。'); return; }
-                showLoader('Webで情報を調査し、概要欄を生成中...');
-                const researchPrompt = `以下の競馬レースの動画概要欄を作成するために必要な最新情報をWeb検索で収集・整理してください。\n\n- レース名: ${inputs.raceName}\n- キーポイント: ${inputs.keyPoint}\n- 注目馬: ${inputs.horse1}, ${inputs.horse2}, ${inputs.darkhorse}\n- その他情報: ${inputs.mustInclude}`;
+                
                 try {
+                    showLoader('Webで情報を調査中... (ステップ1/2)');
+                    const researchPrompt = `以下の競馬レースの動画概要欄を作成するために必要な最新情報をWeb検索で収集・整理してください。\n\n- レース名: ${inputs.raceName}\n- キーポイント: ${inputs.keyPoint}\n- 注目馬: ${inputs.horse1}, ${inputs.horse2}, ${inputs.darkhorse}\n- その他情報: ${inputs.mustInclude}`;
                     const researchResult = await callGeminiAPI(researchPrompt, false, true);
-                    showLoader('概要欄を最終生成中...');
+                    
+                    showLoader('概要欄を最終生成中... (ステップ2/2)');
                     const generationPrompt = `あなたは競馬予想チャンネルの優秀なアシスタントです。以下の##入力情報と##背景情報を基に、YouTubeのタイトルと概要欄を生成してください。\n\n## 背景情報:\n${researchResult}\n\n## 入力情報:\n- レース名: ${inputs.raceName}\n- キーポイント: ${inputs.keyPoint}\n- 本命馬: ${inputs.horse1}\n- 対抗馬: ${inputs.horse2}\n- 伏兵馬: ${inputs.darkhorse}\n- その他の注目馬: ${inputs.otherhorse}\n- 分析ポイント:\n${inputs.analysisPoints}\n- 必ず含めたい内容: ${inputs.mustInclude || '特になし'}\n\n## 出力形式:\n以下のJSON形式で出力してください:\n{\n  "title": "（生成されたタイトル）",\n  "description": "（生成された概要欄）"\n}`;
                     const finalResult = await callGeminiAPI(generationPrompt, true, false);
+
                     document.getElementById('youtube-title-output').value = finalResult.title;
                     document.getElementById('youtube-desc-output').value = finalResult.description;
                     document.getElementById('youtube-result-section').classList.remove('hidden');
@@ -822,10 +893,6 @@
             if (!text) throw new Error("APIから有効な応答がありませんでした。");
             return jsonResponse ? JSON.parse(text) : text;
         }
-
-        // --- Audio Helper Functions (stubs for brevity) ---
-        function base64ToArrayBuffer(base64) { /* ... */ }
-        function pcmToWav(pcmData, sampleRate) { /* ... */ }
         
         generateSegmentCards();
     });
