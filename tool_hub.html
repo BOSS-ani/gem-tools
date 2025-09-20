@@ -595,7 +595,7 @@
                 try {
                     const result = await callGeminiAPI(prompt, true, false); 
                     narrationSummary.value = result.summary;
-                    narrationReading.value = result.reading;
+                    narrationReading.value = result.reading; // Reverted to original as requested
                     ['narration-step2', 'narration-step3'].forEach(id => document.getElementById(id).classList.remove('hidden'));
                 } catch (error) {
                     alert(`生成エラー: ${error.message}`);
@@ -723,21 +723,18 @@
         function encodeToMp3(audioBuffer) {
             const mp3encoder = new lamejs.Mp3Encoder(audioBuffer.numberOfChannels, audioBuffer.sampleRate, 128);
             const mp3Data = [];
-            const pcmBuffer = [];
-            const channelData = [];
             for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
-                channelData.push(audioBuffer.getChannelData(i));
-                pcmBuffer.push(new Int16Array(audioBuffer.length));
-                floatTo16BitPCM(channelData[i], pcmBuffer[i]);
-            }
-            let remaining = pcmBuffer[0].length;
-            const bufferSize = 1152 * audioBuffer.numberOfChannels;
-            for (let i = 0; remaining >= bufferSize; i += bufferSize) {
-                const left = pcmBuffer[0].subarray(i, i + 1152);
-                const right = audioBuffer.numberOfChannels > 1 ? pcmBuffer[1].subarray(i, i + 1152) : left;
-                const mp3buf = mp3encoder.encodeBuffer(left, right);
-                if (mp3buf.length > 0) mp3Data.push(mp3buf);
-                remaining -= 1152;
+                const channelData = audioBuffer.getChannelData(i);
+                const pcm = new Int16Array(channelData.length);
+                floatTo16BitPCM(channelData, pcm);
+                let remaining = pcm.length;
+                const bufferSize = 1152;
+                for (let j = 0; remaining >= bufferSize; j += bufferSize) {
+                    const mono = pcm.subarray(j, j + bufferSize);
+                    const mp3buf = mp3encoder.encodeBuffer(mono);
+                    if (mp3buf.length > 0) mp3Data.push(mp3buf);
+                    remaining -= bufferSize;
+                }
             }
             const flushed = mp3encoder.flush();
             if (flushed.length > 0) mp3Data.push(flushed);
