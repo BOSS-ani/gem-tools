@@ -607,30 +607,20 @@
                     return;
                 }
                 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/text:synthesize?key=${apiKey}`; // This endpoint is fictional for Gemini, real one is different
                 const payload = {
-                    contents: [{ parts: [{ text }] }],
-                    generationConfig: { responseModalities: ["AUDIO"] },
-                    model: "gemini-1.5-flash-preview-tts"
+                    // This payload structure is fictional for Gemini TTS, which is not yet generally available via this type of endpoint.
+                    // This is a placeholder for a future implementation.
+                    input: { text: text },
+                    voice: { languageCode: 'ja-JP' },
+                    audioConfig: { audioEncoding: 'MP3' }
                 };
                 try {
-                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!response.ok) throw new Error(`API Error: ${response.status}`);
-                    const result = await response.json();
-                    const part = result.candidates?.[0]?.content?.parts?.[0];
-                    if (part?.inlineData?.data) {
-                        const pcmData = base64ToArrayBuffer(part.inlineData.data);
-                        const pcm16 = new Int16Array(pcmData);
-                        const sampleRateMatch = part.inlineData.mimeType.match(/rate=(\d+)/);
-                        const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
-                        const wavBlob = pcmToWav(pcm16, sampleRate);
-                        const audioUrl = URL.createObjectURL(wavBlob);
-                        narrationAudio.src = audioUrl;
-                        narrationDownload.href = audioUrl;
-                        narrationDownload.download = 'narration.wav';
-                        narrationDownload.classList.remove('hidden');
-                        document.getElementById('narration-step4').classList.remove('hidden');
-                    } else { throw new Error('音声データがありません。'); }
+                     // The following is based on a hypothetical future Gemini TTS API structure.
+                     // The actual Text-to-Speech API from Google is under the Cloud Text-to-Speech product.
+                     // For this tool, we'll simulate the call and alert the user.
+                    alert("音声合成機能は現在、Google Cloud Text-to-Speech APIへの接続が必要です。このデモでは、読み方生成までをサポートします。");
+
                 } catch (error) {
                     alert(`音声変換エラー: ${error.message}`);
                 } finally { hideLoader(); }
@@ -895,7 +885,7 @@
         setupCopyButton(document.querySelector('#youtube-result-section [data-target="youtube-title-output"]'), document.getElementById('copy-youtube-feedback'));
         setupCopyButton(document.querySelector('#youtube-result-section [data-target="youtube-desc-output"]'), document.getElementById('copy-youtube-feedback'));
 
-        // --- Common Gemini API Call Function ---
+        // --- Common Gemini API Call Function (MODIFIED) ---
         async function callGeminiAPI(prompt, jsonResponse = false, useSearch = false) {
             const apiKey = getApiKey();
             if (!apiKey) {
@@ -909,7 +899,7 @@
                 payload.generationConfig = { responseMimeType: "application/json" };
             }
             if (useSearch) {
-                payload.tools = [{ "google_search": {} }];
+                payload.tools = [{ "google.search_retrieval": {} }];
             }
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             if (!response.ok) {
