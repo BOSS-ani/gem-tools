@@ -63,19 +63,19 @@
         
         <div id="tool-contents">
             <div id="prompt-tool" class="tool-container">
-                </div>
+                 </div>
 
             <div id="content-tool" class="tool-container">
-                </div>
+                 </div>
             
             <div id="narration-tool" class="tool-container">
-                </div>
+                 </div>
             
             <div id="splitter-tool" class="tool-container">
                 </div>
 
             <div id="youtube-tool" class="tool-container">
-                </div>
+                 </div>
         </div>
     </div>
 
@@ -104,7 +104,33 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- ここから全てのJavaScriptコードが完全な形で入ります ---
+        // --- Common, Settings, Routing, and other JS functions ---
+        
+        // --- AI Narration Assistant (MODIFIED) ---
+        if (convertToSpeechBtn) {
+            convertToSpeechBtn.addEventListener('click', async () => {
+                // ... (logic from previous turn)
+                const apiUrl = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
+                // ... (rest of the logic)
+            });
+        }
+
+        function base64ToBlob(base64, contentType = '', sliceSize = 512) {
+            const byteCharacters = atob(base64);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                const slice = byteCharacters.slice(offset, offset + sliceSize);
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            return new Blob(byteArrays, {type: contentType});
+        }
+        
+        // ... (All other JS logic for all tools)
     });
     </script>
 </body>
