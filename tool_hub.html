@@ -935,7 +935,9 @@
                         youtubeResultSection.classList.remove('hidden');
                     } catch (error) {
                         showAlert(`生成エラー: ${error.message}`);
-                    } finally { hideLoader(); }
+                    } finally {
+                        hideLoader();
+                    }
                 });
             }
 
