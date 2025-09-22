@@ -384,7 +384,7 @@
                         </div>
                         <div>
                             <h4 class="font-bold">【フォローアップ（ワークフロー）】</h4>
-                             <p class="text-sm">例えば、「AIナレーション」ツールで作成した一つの長いナレーション音声を、動画のスライドやシーンの数に合わせてここで分割することができます。分割した音声ファイルは、動画編集ソフトで各シーンに配置する際に便利です。最終的に、次の<strong class="text-yellow-400">「YouTube概要欄」</strong>ツールで動画公開の準備をしましょう。</p>
+                             <p class="text-sm">例えば、「AIナレーション」ツールで作成した一つの長いナレーション音声を、動画のスライドやシーンの数に合わせてここで分割することができます。分割した音声ファイルは、動画編集ソフトに取り込んで映像に合わせるなど、様々なコンテンツ制作にご活用いただけます。最終的に、次の<strong class="text-yellow-400">「YouTube概要欄」</strong>ツールで動画公開の準備をしましょう。</p>
                         </div>
                     </div>
                 </div>
@@ -612,6 +612,18 @@
             const speaker2Voice = document.getElementById('speaker2-voice');
             const narrationStep2 = document.getElementById('narration-step2');
 
+            // Content Tool Elements
+            const generateStep1Btn = document.getElementById('generate-step1-btn');
+            const contentTheme = document.getElementById('content-theme');
+            const contentData = document.getElementById('content-data');
+            const contentHtmlOutput = document.getElementById('content-html-output');
+            const step2Section = document.getElementById('step2-section');
+            const generateStep2Btn = document.getElementById('generate-step2-btn');
+            const generateStep3Btn = document.getElementById('generate-step3-btn');
+            const contentScriptOutput = document.getElementById('content-script-output');
+            const contentSlideOutput = document.getElementById('content-slide-output');
+            const step3Section = document.getElementById('step3-section');
+
             // YouTube Tool Elements
             const generateYoutubeBtn = document.getElementById('generate-youtube-btn');
             const youtubeTitleOutput = document.getElementById('yt-title-output');
@@ -784,6 +796,74 @@
                         }
                     } catch (error) {
                         showAlert(`音声変換エラー: ${error.message}\n\nヒント: APIキーの権限、またはGemini 2.5 Flash Preview TTSモデルが利用可能か確認してください。`);
+                    } finally {
+                        hideLoader();
+                    }
+                });
+            }
+
+            // --- Content Tool Logic (NEW) ---
+            if (generateStep1Btn) {
+                generateStep1Btn.addEventListener('click', async () => {
+                    const theme = contentTheme.value.trim();
+                    const data = contentData.value.trim();
+                    if (!theme || !data) {
+                        showAlert('分析テーマと分析データの両方を入力してください。');
+                        return;
+                    }
+                    
+                    try {
+                        showLoader('Webページを生成中...');
+                        const prompt = `あなたはWebページのHTMLを生成する専門家です。以下の##分析テーマと##分析データを基に、美しく、モバイルフレンドリーで、Tailwind CSSを使用したHTMLコードを生成してください。\n\n## 分析テーマ:\n${theme}\n\n## 分析データ:\n${data}\n\n## 指示:\n- 美しいHTMLデザインにしてください。\n- Tailwind CSSクラスのみを使用してスタイリングしてください。\n- \`<style>\`タグやJavaScriptは使用しないでください。\n- HTMLの\`<body>\`タグの中身のみを生成してください。`;
+                        const htmlContent = await callGeminiAPI(prompt);
+                        contentHtmlOutput.value = htmlContent;
+                        step2Section.classList.remove('hidden');
+                    } catch (error) {
+                        showAlert(`Webページ生成エラー: ${error.message}`);
+                    } finally {
+                        hideLoader();
+                    }
+                });
+            }
+
+            if (generateStep2Btn) {
+                generateStep2Btn.addEventListener('click', async () => {
+                    const html = contentHtmlOutput.value.trim();
+                    if (!html) {
+                        showAlert('先にWebページを生成してください。');
+                        return;
+                    }
+
+                    try {
+                        showLoader('ナレーション原稿を生成中...');
+                        const prompt = `あなたはコンテンツ制作の専門家です。以下のHTMLコンテンツを読み込み、ナレーション原稿として使えるように、簡潔で分かりやすい日本語のテキストに要約してください。HTMLタグや余分な記号はすべて削除してください。`;
+                        const script = await callGeminiAPI(prompt);
+                        contentScriptOutput.value = script;
+                        step3Section.classList.remove('hidden');
+                    } catch (error) {
+                        showAlert(`ナレーション原稿生成エラー: ${error.message}`);
+                    } finally {
+                        hideLoader();
+                    }
+                });
+            }
+
+            if (generateStep3Btn) {
+                generateStep3Btn.addEventListener('click', async () => {
+                    const html = contentHtmlOutput.value.trim();
+                    if (!html) {
+                        showAlert('先にWebページを生成してください。');
+                        return;
+                    }
+
+                    try {
+                        showLoader('スライド化コードを生成中...');
+                        const prompt = `あなたはプレゼンテーションの専門家です。以下のHTMLコンテンツを、Reveal.js形式のスライドショーHTMLに変換してください。各セクションや主要な見出しごとにスライドを分割し、` + html + `形式で出力してください。`;
+                        const slideHtml = await callGeminiAPI(prompt);
+                        contentSlideOutput.value = slideHtml;
+                        step3Section.classList.remove('hidden');
+                    } catch (error) {
+                        showAlert(`スライド化コード生成エラー: ${error.message}`);
                     } finally {
                         hideLoader();
                     }
