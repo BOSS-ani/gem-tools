@@ -80,7 +80,6 @@
                                     <select id="prompt-analysis-type" class="form-input">
                                         <option value="データ分析・有力馬評価">データ分析・有力馬評価</option>
                                         <option value="血統分析・穴馬探索">血統分析・穴馬探索</option>
-                                        <option value="調教・状態評価">調教・状態評価</option>
                                     </select>
                                 </div>
                                 <div>
@@ -758,7 +757,7 @@
                     
                     try {
                         showLoader('Webページを生成中...');
-                        const prompt = `あなたはWebページのHTMLを生成する専門家です。以下の##分析テーマと##分析データを基に、美しく、モバイルフレンドリーで、Tailwind CSSを使用したHTMLコードを生成してください。\n\n## 分析テーマ:\n${theme}\n\n## 分析データ:\n${data}\n\n## 指示:\n- 美しいHTMLデザインにしてください。\n- Tailwind CSSクラスのみを使用してスタイリングしてください。\n- \`<style>\`タグやJavaScriptは使用しないでください。\n- HTMLの\`<body>\`タグの中身のみを生成してください。`;
+                        const prompt = `あなたはWebページのHTMLを生成する専門家です。以下の##分析テーマと##分析データを基に、美しく、モバイルフレンドリーで、Tailwind CSSを使用したHTMLコードを生成してください。\n\n## 分析テーマ:\n${theme}\n\n## 分析データ:\n${data}\n\n## 指示:\n- Webページに掲載する分析コンテンツとして、詳細かつ網羅的な内容を生成してください。\n- Tailwind CSSクラスのみを使用してスタイリングしてください。\n- \`<style>\`タグやJavaScriptは使用しないでください。\n- HTMLの\`<body>\`タグの中身のみを生成してください。`;
                         const htmlContent = await callGeminiAPI(prompt);
                         contentHtmlOutput.value = htmlContent;
                         step2Section.classList.remove('hidden');
