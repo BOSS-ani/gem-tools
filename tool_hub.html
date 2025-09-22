@@ -858,7 +858,7 @@
 
                     try {
                         showLoader('スライド化コードを生成中...');
-                        const prompt = `あなたはプレゼンテーションの専門家です。以下のHTMLコンテンツを、Reveal.js形式のスライドショーHTMLに変換してください。各セクションや主要な見出しごとにスライドを分割し、` + html + `形式で出力してください。`;
+                        const prompt = `あなたはプレゼンテーションの専門家です。以下のHTMLコンテンツを、Reveal.js形式のスライドショーHTMLに変換してください。各セクションや主要な見出しごとにスライドを分割し、\` + html + \`形式で出力してください。`;
                         const slideHtml = await callGeminiAPI(prompt);
                         contentSlideOutput.value = slideHtml;
                         step3Section.classList.remove('hidden');
