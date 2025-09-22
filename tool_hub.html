@@ -344,7 +344,7 @@
                                     <h3 class="text-xl font-bold mb-2">分割数を設定</h3>
                                     <p class="text-gray-400 mb-4">音声をいくつのパートに分けるか入力してください。</p>
                                     <div class="flex items-center gap-4">
-                                        <input type="number" id="segment-count" min="1" value="8" placeholder="例: 8" class="form-input w-24 text-center">
+                                        <input type="number" id="segment-count" min="1" value="8" class="form-input w-24 text-center">
                                         <button id="generate-segments-btn" class="main-button">セクションを生成</button>
                                     </div>
                                 </div>
@@ -601,36 +601,7 @@
             const navButtons = document.querySelectorAll('.nav-button[data-tool]');
             const toolContainers = document.querySelectorAll('.tool-container');
             
-            // Narration Tool Elements
-            const convertToSpeechBtn = document.getElementById('convert-to-speech-btn');
-            const narrationInput = document.getElementById('narration-input');
-            const narrationAudio = document.getElementById('narration-audio');
-            const narrationDownload = document.getElementById('narration-download');
-            const speaker1Name = document.getElementById('speaker1-name');
-            const speaker1Voice = document.getElementById('speaker1-voice');
-            const speaker2Name = document.getElementById('speaker2-name');
-            const speaker2Voice = document.getElementById('speaker2-voice');
-            const narrationStep2 = document.getElementById('narration-step2');
-
-            // Content Tool Elements
-            const generateStep1Btn = document.getElementById('generate-step1-btn');
-            const contentTheme = document.getElementById('content-theme');
-            const contentData = document.getElementById('content-data');
-            const contentHtmlOutput = document.getElementById('content-html-output');
-            const step2Section = document.getElementById('step2-section');
-            const generateStep2Btn = document.getElementById('generate-step2-btn');
-            const generateStep3Btn = document.getElementById('generate-step3-btn');
-            const contentScriptOutput = document.getElementById('content-script-output');
-            const contentSlideOutput = document.getElementById('content-slide-output');
-            const step3Section = document.getElementById('step3-section');
-
-            // YouTube Tool Elements
-            const generateYoutubeBtn = document.getElementById('generate-youtube-btn');
-            const youtubeTitleOutput = document.getElementById('yt-title-output');
-            const youtubeDescOutput = document.getElementById('yt-desc-output');
-            const youtubeResultSection = document.getElementById('youtube-result-section');
-
-            // --- Helper Functions ---
+            // --- Common Helper Functions ---
             const showLoader = (message = '処理中です...') => {
                 loaderMessage.textContent = message;
                 loader.classList.remove('hidden');
@@ -699,23 +670,148 @@
                 if (!text) throw new Error("APIから有効な応答がありませんでした。");
                 return jsonResponse ? JSON.parse(text) : text;
             }
+            
+            // --- Tool-specific Logic ---
+            
+            // Prompt Tool
+            const generatePromptBtn = document.getElementById('generate-prompt-btn');
+            const promptRaceName = document.getElementById('prompt-race-name');
+            const promptAnalysisType = document.getElementById('prompt-analysis-type');
+            const promptOutput = document.getElementById('prompt-output');
+            const promptResultSection = document.getElementById('prompt-result-section');
+            const copyPromptBtn = document.getElementById('copy-prompt-btn');
+            const copyPromptFeedback = document.getElementById('copy-prompt-feedback');
 
-            // --- Settings Modal Listeners ---
-            settingsBtn.addEventListener('click', openSettingsModal);
-            settingsBackdrop.addEventListener('click', closeSettingsModal);
-            settingsCancelBtn.addEventListener('click', closeSettingsModal);
-            settingsSaveBtn.addEventListener('click', () => {
-                const apiKey = apiKeyInput.value.trim();
-                if (apiKey) {
-                    localStorage.setItem('geminiApiKey', apiKey);
-                    showAlert('APIキーを保存しました。');
-                    closeSettingsModal();
-                } else {
-                    showAlert('APIキーを入力してください。');
-                }
-            });
+            if (generatePromptBtn) {
+                generatePromptBtn.addEventListener('click', async () => {
+                    const raceName = promptRaceName.value.trim();
+                    const analysisType = promptAnalysisType.value;
+                    const focusPoints = Array.from(document.querySelectorAll('#prompt-tool input[name="focus-point"]:checked')).map(cb => cb.value);
 
-            // --- AI Narration Speech Conversion (Updated) ---
+                    if (!raceName) {
+                        showAlert('レース名を入力してください。');
+                        return;
+                    }
+
+                    showLoader('プロンプトを生成中...');
+                    const focusPointsText = focusPoints.length > 0 ? `\n- 特に重視する点: ${focusPoints.join(', ')}` : '';
+                    const prompt = `あなたはNotebookLMで競馬分析を行うためのプロンプトを生成する専門家です。以下の情報に基づいて、最も効果的なプロンプトを作成してください。
+- レース名: ${raceName}
+- 分析のタイプ: ${analysisType}${focusPointsText}
+具体的な指示、考慮すべき要素、出力形式などを詳細に記述し、ユーザーがNotebookLMに貼り付けるだけで質の高い分析結果が得られるようにしてください。プロンプト本文のみを出力してください。`;
+
+                    try {
+                        const result = await callGeminiAPI(prompt);
+                        promptOutput.value = result;
+                        promptResultSection.classList.remove('hidden');
+                    } catch (error) {
+                        showAlert(`プロンプト生成エラー: ${error.message}`);
+                    } finally {
+                        hideLoader();
+                    }
+                });
+            }
+
+            if (copyPromptBtn) {
+                copyPromptBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(promptOutput.value).then(() => {
+                        copyPromptFeedback.classList.add('opacity-100');
+                        setTimeout(() => { copyPromptFeedback.classList.remove('opacity-100'); }, 2000);
+                    });
+                });
+            }
+
+
+            // Content Tool
+            const generateStep1Btn = document.getElementById('generate-step1-btn');
+            const contentTheme = document.getElementById('content-theme');
+            const contentData = document.getElementById('content-data');
+            const contentHtmlOutput = document.getElementById('content-html-output');
+            const step2Section = document.getElementById('step2-section');
+            const generateStep2Btn = document.getElementById('generate-step2-btn');
+            const generateStep3Btn = document.getElementById('generate-step3-btn');
+            const contentScriptOutput = document.getElementById('content-script-output');
+            const contentSlideOutput = document.getElementById('content-slide-output');
+            const step3Section = document.getElementById('step3-section');
+
+            if (generateStep1Btn) {
+                generateStep1Btn.addEventListener('click', async () => {
+                    const theme = contentTheme.value.trim();
+                    const data = contentData.value.trim();
+                    if (!theme || !data) {
+                        showAlert('分析テーマと分析データの両方を入力してください。');
+                        return;
+                    }
+                    
+                    try {
+                        showLoader('Webページを生成中...');
+                        const prompt = `あなたはWebページのHTMLを生成する専門家です。以下の##分析テーマと##分析データを基に、美しく、モバイルフレンドリーで、Tailwind CSSを使用したHTMLコードを生成してください。\n\n## 分析テーマ:\n${theme}\n\n## 分析データ:\n${data}\n\n## 指示:\n- 美しいHTMLデザインにしてください。\n- Tailwind CSSクラスのみを使用してスタイリングしてください。\n- \`<style>\`タグやJavaScriptは使用しないでください。\n- HTMLの\`<body>\`タグの中身のみを生成してください。`;
+                        const htmlContent = await callGeminiAPI(prompt);
+                        contentHtmlOutput.value = htmlContent;
+                        step2Section.classList.remove('hidden');
+                    } catch (error) {
+                        showAlert(`Webページ生成エラー: ${error.message}`);
+                    } finally {
+                        hideLoader();
+                    }
+                });
+            }
+
+            if (generateStep2Btn) {
+                generateStep2Btn.addEventListener('click', async () => {
+                    const html = contentHtmlOutput.value.trim();
+                    if (!html) {
+                        showAlert('先にWebページを生成してください。');
+                        return;
+                    }
+
+                    try {
+                        showLoader('ナレーション原稿を生成中...');
+                        const prompt = `あなたはコンテンツ制作の専門家です。以下のHTMLコンテンツを読み込み、ナレーション原稿として使えるように、簡潔で分かりやすい日本語のテキストに要約してください。HTMLタグや余分な記号はすべて削除してください。`;
+                        const script = await callGeminiAPI(prompt);
+                        contentScriptOutput.value = script;
+                        step3Section.classList.remove('hidden');
+                    } catch (error) {
+                        showAlert(`ナレーション原稿生成エラー: ${error.message}`);
+                    } finally {
+                        hideLoader();
+                    }
+                });
+            }
+
+            if (generateStep3Btn) {
+                generateStep3Btn.addEventListener('click', async () => {
+                    const html = contentHtmlOutput.value.trim();
+                    if (!html) {
+                        showAlert('先にWebページを生成してください。');
+                        return;
+                    }
+
+                    try {
+                        showLoader('スライド化コードを生成中...');
+                        const prompt = `あなたはプレゼンテーションの専門家です。以下のHTMLコンテンツを、Reveal.js形式のスライドショーHTMLに変換してください。各セクションや主要な見出しごとにスライドを分割し、` + html + `形式で出力してください。`;
+                        const slideHtml = await callGeminiAPI(prompt);
+                        contentSlideOutput.value = slideHtml;
+                        step3Section.classList.remove('hidden');
+                    } catch (error) {
+                        showAlert(`スライド化コード生成エラー: ${error.message}`);
+                    } finally {
+                        hideLoader();
+                    }
+                });
+            }
+
+            // Narration Tool
+            const narrationInput = document.getElementById('narration-input');
+            const narrationAudio = document.getElementById('narration-audio');
+            const narrationDownload = document.getElementById('narration-download');
+            const speaker1Name = document.getElementById('speaker1-name');
+            const speaker1Voice = document.getElementById('speaker1-voice');
+            const speaker2Name = document.getElementById('speaker2-name');
+            const speaker2Voice = document.getElementById('speaker2-voice');
+            const narrationStep2 = document.getElementById('narration-step2');
+            const convertToSpeechBtn = document.getElementById('convert-to-speech-btn');
+
             if (convertToSpeechBtn) {
                 convertToSpeechBtn.addEventListener('click', async () => {
                     const text = narrationInput.value.trim();
@@ -802,75 +898,15 @@
                 });
             }
 
-            // --- Content Tool Logic (NEW) ---
-            if (generateStep1Btn) {
-                generateStep1Btn.addEventListener('click', async () => {
-                    const theme = contentTheme.value.trim();
-                    const data = contentData.value.trim();
-                    if (!theme || !data) {
-                        showAlert('分析テーマと分析データの両方を入力してください。');
-                        return;
-                    }
-                    
-                    try {
-                        showLoader('Webページを生成中...');
-                        const prompt = `あなたはWebページのHTMLを生成する専門家です。以下の##分析テーマと##分析データを基に、美しく、モバイルフレンドリーで、Tailwind CSSを使用したHTMLコードを生成してください。\n\n## 分析テーマ:\n${theme}\n\n## 分析データ:\n${data}\n\n## 指示:\n- 美しいHTMLデザインにしてください。\n- Tailwind CSSクラスのみを使用してスタイリングしてください。\n- \`<style>\`タグやJavaScriptは使用しないでください。\n- HTMLの\`<body>\`タグの中身のみを生成してください。`;
-                        const htmlContent = await callGeminiAPI(prompt);
-                        contentHtmlOutput.value = htmlContent;
-                        step2Section.classList.remove('hidden');
-                    } catch (error) {
-                        showAlert(`Webページ生成エラー: ${error.message}`);
-                    } finally {
-                        hideLoader();
-                    }
-                });
-            }
+            // Splitter Tool
+            // No changes needed as this tool does not use a backend AI API.
 
-            if (generateStep2Btn) {
-                generateStep2Btn.addEventListener('click', async () => {
-                    const html = contentHtmlOutput.value.trim();
-                    if (!html) {
-                        showAlert('先にWebページを生成してください。');
-                        return;
-                    }
+            // YouTube Tool
+            const generateYoutubeBtn = document.getElementById('generate-youtube-btn');
+            const youtubeTitleOutput = document.getElementById('yt-title-output');
+            const youtubeDescOutput = document.getElementById('yt-desc-output');
+            const youtubeResultSection = document.getElementById('youtube-result-section');
 
-                    try {
-                        showLoader('ナレーション原稿を生成中...');
-                        const prompt = `あなたはコンテンツ制作の専門家です。以下のHTMLコンテンツを読み込み、ナレーション原稿として使えるように、簡潔で分かりやすい日本語のテキストに要約してください。HTMLタグや余分な記号はすべて削除してください。`;
-                        const script = await callGeminiAPI(prompt);
-                        contentScriptOutput.value = script;
-                        step3Section.classList.remove('hidden');
-                    } catch (error) {
-                        showAlert(`ナレーション原稿生成エラー: ${error.message}`);
-                    } finally {
-                        hideLoader();
-                    }
-                });
-            }
-
-            if (generateStep3Btn) {
-                generateStep3Btn.addEventListener('click', async () => {
-                    const html = contentHtmlOutput.value.trim();
-                    if (!html) {
-                        showAlert('先にWebページを生成してください。');
-                        return;
-                    }
-
-                    try {
-                        showLoader('スライド化コードを生成中...');
-                        const prompt = `あなたはプレゼンテーションの専門家です。以下のHTMLコンテンツを、Reveal.js形式のスライドショーHTMLに変換してください。各セクションや主要な見出しごとにスライドを分割し、` + html + `形式で出力してください。`;
-                        const slideHtml = await callGeminiAPI(prompt);
-                        contentSlideOutput.value = slideHtml;
-                        step3Section.classList.remove('hidden');
-                    } catch (error) {
-                        showAlert(`スライド化コード生成エラー: ${error.message}`);
-                    } finally {
-                        hideLoader();
-                    }
-                });
-            }
-
-            // --- YouTube Tool Logic (Updated) ---
             if (generateYoutubeBtn) {
                 generateYoutubeBtn.addEventListener('click', async () => {
                     const inputs = {
@@ -894,38 +930,65 @@
                         const generationPrompt = `あなたは競馬予想チャンネルの優秀なアシスタントです。以下の##入力情報と##背景情報を基に、YouTubeのタイトルと概要欄を生成してください。\n\n## 背景情報:\n${researchResult}\n\n## 入力情報:\n- レース名: ${inputs.raceName}\n- キーポイント: ${inputs.keyPoint}\n- 本命馬: ${inputs.horse1}\n- 対抗馬: ${inputs.horse2}\n- 伏兵馬: ${inputs.darkhorse}\n- その他の注目馬: ${inputs.otherhorse}\n- 分析ポイント:\n${inputs.analysisPoints}\n- 必ず含めたい内容: ${inputs.mustInclude || '特になし'}\n\n## 出力形式:\n以下のJSON形式で出力してください:\n{\n  "title": "（生成されたタイトル）",\n  "description": "（生成された概要欄）"\n}`;
                         const finalResult = await callGeminiAPI(generationPrompt, true, false);
 
-                        document.getElementById('yt-title-output').value = finalResult.title;
-                        document.getElementById('yt-desc-output').value = finalResult.description;
-                        document.getElementById('youtube-result-section').classList.remove('hidden');
+                        youtubeTitleOutput.value = finalResult.title;
+                        youtubeDescOutput.value = finalResult.description;
+                        youtubeResultSection.classList.remove('hidden');
                     } catch (error) {
                         showAlert(`生成エラー: ${error.message}`);
                     } finally { hideLoader(); }
                 });
             }
 
-            // --- Tool Switching Logic ---
-            function switchTool(tool) {
-                navButtons.forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.tool === tool);
-                });
-                toolContainers.forEach(container => {
-                    container.classList.toggle('active', container.id === `${tool}-tool`);
-                });
-                localStorage.setItem('selectedTool', tool);
-            }
+            // --- Common UI & Global Logic ---
+            // Settings Modal
+            settingsBtn.addEventListener('click', () => {
+                apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
+                settingsModal.classList.remove('hidden');
+            });
+            settingsBackdrop.addEventListener('click', () => settingsModal.classList.add('hidden'));
+            settingsCancelBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+            settingsSaveBtn.addEventListener('click', () => {
+                const apiKey = apiKeyInput.value.trim();
+                if (apiKey) {
+                    localStorage.setItem('geminiApiKey', apiKey);
+                    showAlert('APIキーを保存しました。');
+                    settingsModal.classList.add('hidden');
+                } else {
+                    showAlert('APIキーを入力してください。');
+                }
+            });
 
+            // Tool Switching
+            const switchTool = (tool) => {
+                navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tool === tool));
+                toolContainers.forEach(container => container.classList.toggle('active', container.id === `${tool}-tool`));
+                localStorage.setItem('selectedTool', tool);
+            };
             navButtons.forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const tool = e.currentTarget.dataset.tool;
-                    if(tool) {
-                        switchTool(tool);
+                button.addEventListener('click', (e) => switchTool(e.currentTarget.dataset.tool));
+            });
+
+            // Initial state
+            const lastTool = localStorage.getItem('selectedTool') || 'prompt';
+            switchTool(lastTool);
+
+            document.querySelectorAll('.copy-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.select();
+                        document.execCommand('copy');
+                        const feedbackElement = document.getElementById(`copy-${targetId.replace('yt-', '').replace('-output', '')}-feedback`);
+                        if (feedbackElement) {
+                            feedbackElement.classList.add('opacity-100');
+                            setTimeout(() => { feedbackElement.classList.remove('opacity-100'); }, 2000);
+                        } else {
+                            showAlert('コピーしました！');
+                        }
                     }
                 });
             });
-
-            // Restore last selected tool
-            const lastTool = localStorage.getItem('selectedTool') || 'prompt';
-            switchTool(lastTool);
         });
     </script>
 </body>
