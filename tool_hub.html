@@ -228,12 +228,63 @@
                     <div class="flex items-start gap-4">
                         <div class="step-number">1</div>
                         <div>
-                            <h3 class="text-xl font-bold mb-2">原稿入力</h3>
-                            <p class="text-gray-400 mb-4">ナレーションの元となる日本語のテキストを貼り付けてください。</p>
-                            <textarea id="narration-input" class="h-40" placeholder="ここにナレーションの原稿を入力..."></textarea>
-                            <button id="generate-reading-btn" class="main-button mt-4">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                <span>概要と読み方を生成</span>
+                            <h3 class="text-xl font-bold mb-2">原稿入力と設定</h3>
+                            <p class="text-gray-400 mb-4">ナレーションさせたい文章を貼り付け、話者を設定してください。</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="narration-input" class="block text-sm font-medium text-gray-300 mb-1">ナレーション原稿</label>
+                                    <textarea id="narration-input" class="h-40" placeholder="ここにナレーションの原稿を入力..."></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="speaker1-name" class="block text-sm font-medium text-gray-300 mb-1">話者1 (男性)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" id="speaker1-name" class="form-input" value="Joe" placeholder="例：ジョー">
+                                            <select id="speaker1-voice" class="form-input w-auto">
+                                                <option value="Kore">Kore (Firm)</option>
+                                                <option value="Zephyr">Zephyr (Bright)</option>
+                                                <option value="Charon">Charon (Informative)</option>
+                                                <option value="Fenrir">Fenrir (Excitable)</option>
+                                                <option value="Orus">Orus (Firm)</option>
+                                                <option value="Enceladus">Enceladus (Breathy)</option>
+                                                <option value="Iapetus">Iapetus (Clear)</option>
+                                                <option value="Algenib">Algenib (Gravelly)</option>
+                                                <option value="Rasalgethi">Rasalgethi (Informative)</option>
+                                                <option value="Alnilam">Alnilam (Firm)</option>
+                                                <option value="Schedar">Schedar (Even)</option>
+                                                <option value="Gacrux">Gacrux (Mature)</option>
+                                                <option value="Achird">Achird (Friendly)</option>
+                                                <option value="Zubenelgenubi">Zubenelgenubi (Casual)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="speaker2-name" class="block text-sm font-medium text-gray-300 mb-1">話者2 (女性)</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" id="speaker2-name" class="form-input" value="Jane" placeholder="例：ジェーン">
+                                            <select id="speaker2-voice" class="form-input w-auto">
+                                                <option value="Puck">Puck (Upbeat)</option>
+                                                <option value="Leda">Leda (Youthful)</option>
+                                                <option value="Aoede">Aoede (Breezy)</option>
+                                                <option value="Callirrhoe">Callirrhoe (Easy-going)</option>
+                                                <option value="Autonoe">Autonoe (Bright)</option>
+                                                <option value="Umbriel">Umbriel (Easy-going)</option>
+                                                <option value="Algieba">Algieba (Smooth)</option>
+                                                <option value="Despina">Despina (Smooth)</option>
+                                                <option value="Erinome">Erinome (Clear)</option>
+                                                <option value="Laomedeia">Laomedeia (Upbeat)</option>
+                                                <option value="Achernar">Achernar (Soft)</option>
+                                                <option value="Vindemiatrix">Vindemiatrix (Gentle)</option>
+                                                <option value="Sadachbia">Sadachbia (Lively)</option>
+                                                <option value="Sadaltager">Sadaltager (Knowledgeable)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="convert-to-speech-btn" class="main-button mt-4">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                <span>音声に変換</span>
                             </button>
                         </div>
                     </div>
@@ -242,31 +293,7 @@
                     <div class="flex items-start gap-4">
                         <div class="step-number">2</div>
                         <div>
-                            <h3 class="text-xl font-bold mb-2">音声概要</h3>
-                            <p class="text-gray-400 mb-4">AIが生成したテキストの要約です。</p>
-                            <textarea id="narration-summary" class="h-32 text-sm" readonly></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div id="narration-step3" class="step-card hidden">
-                    <div class="flex items-start gap-4">
-                        <div class="step-number">3</div>
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">読み方の確認・修正</h3>
-                            <p class="text-gray-400 mb-4">読み方が違う箇所は、カタカナを直接編集してください。</p>
-                            <textarea id="narration-reading" class="h-40"></textarea>
-                            <button id="convert-to-speech-btn" class="main-button mt-4">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                                <span>音声に変換</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div id="narration-step4" class="step-card hidden">
-                    <div class="flex items-start gap-4">
-                        <div class="step-number">4</div>
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">プレビューとダウンロード</h3>
+                            <h3 class="text-xl font-bold mb-2">音声プレビューとダウンロード</h3>
                             <p class="text-gray-400 mb-4">生成された音声を確認し、ダウンロードしてください。</p>
                             <audio id="narration-audio" controls class="w-full"></audio>
                             <a id="narration-download" class="main-button mt-4 hidden">
@@ -287,9 +314,8 @@
                             <h4 class="font-bold">【基本的な使い方】</h4>
                             <ol class="list-decimal list-inside space-y-2 pl-2 text-sm">
                                 <li><strong>原稿入力:</strong> 「ステップ1」のボックスに、ナレーションさせたい文章を貼り付けます。</li>
-                                <li><strong>読み方生成:</strong> 「概要と読み方を生成」ボタンを押すと、AIが原稿の要約と、漢字の読み方をカタカナに変換したものを生成します。</li>
-                                <li><strong>読み方チェック＆修正:</strong> 「ステップ3」で、AIが生成したカタカナの読み方を確認します。特に人名や専門用語など、意図と違う読み方になっている場合は、このボックス内で直接カタカナを修正してください。<strong class="text-yellow-400">ここでの修正が、最終的な音声の品質を決定する最も重要な工程です。</strong></li>
-                                <li><strong>音声化＆ダウンロード:</strong> 読み方の修正が完了したら、「音声に変換」ボタンを押します。生成された音声を「ステップ4」でプレビュー再生し、問題がなければ「ダウンロード」ボタンでPCに保存します。</li>
+                                <li><strong>話者設定:</strong> 会話形式の文章の場合、話者1と話者2の名前を `Joe: ` のように文頭に付けてください。各話者に割り当てる音声タイプをドロップダウンメニューから選択します。</li>
+                                <li><strong>音声化＆ダウンロード:</strong> 読み方の修正が完了したら、「音声に変換」ボタンを押します。生成された音声を「ステップ2」でプレビュー再生し、問題がなければ「ダウンロード」ボタンでPCに保存します。</li>
                             </ol>
                         </div>
                         <div>
@@ -774,8 +800,10 @@ ${html}`;
             const narrationInput = document.getElementById('narration-input');
             const narrationAudio = document.getElementById('narration-audio');
             const narrationDownload = document.getElementById('narration-download');
-            const narrationSummary = document.getElementById('narration-summary');
-            const narrationReading = document.getElementById('narration-reading');
+            const speaker1Name = document.getElementById('speaker1-name');
+            const speaker1Voice = document.getElementById('speaker1-voice');
+            const speaker2Name = document.getElementById('speaker2-name');
+            const speaker2Voice = document.getElementById('speaker2-voice');
             const narrationStep1 = document.getElementById('narration-step1');
             const narrationStep2 = document.getElementById('narration-step2');
             const narrationStep3 = document.getElementById('narration-step3');
@@ -790,10 +818,8 @@ ${html}`;
                         showAlert('ナレーション原稿を入力してください。');
                         return;
                     }
-
                     const apiKey = getApiKey();
                     if (!apiKey) return;
-
                     showLoader('概要と読み方を生成中...');
                     const prompt = `あなたはテキスト要約とルビ（読み方）の専門家です。以下の日本語の文章を、100字程度で要約し、その後に原文の漢字にルビを振った（カタカナに変換した）文章を生成してください。
                     
@@ -807,7 +833,6 @@ ${html}`;
                     
 - **入力テキスト:**
 ${text}`;
-
                     try {
                         const result = await callGeminiAPI(prompt, true);
                         narrationSummary.value = result.summary;
@@ -829,17 +854,45 @@ ${text}`;
                         showAlert('読み方を入力してください。');
                         return;
                     }
-
                     const apiKey = getApiKey();
                     if (!apiKey) return;
-
                     showLoader('音声に変換中...');
-                    const apiUrl = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
-                    const payload = {
-                        input: { text: text },
-                        voice: { languageCode: 'ja-JP', name: 'ja-JP-Wavenet-D' },
-                        audioConfig: { audioEncoding: 'MP3' }
-                    };
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                    
+                    let payload;
+                    const speaker1 = speaker1Name.value.trim();
+                    const speaker2 = speaker2Name.value.trim();
+                    const isMultiSpeaker = text.includes(`${speaker1}:`) || text.includes(`${speaker2}:`);
+
+                    if (isMultiSpeaker) {
+                        payload = {
+                            contents: [{ parts: [{ text: `TTS the following conversation between ${speaker1} and ${speaker2}:\n${text}` }] }],
+                            generationConfig: {
+                                responseModalities: ["AUDIO"],
+                                speechConfig: {
+                                    multiSpeakerVoiceConfig: {
+                                        speakerVoiceConfigs: [
+                                            { speaker: speaker1, voiceConfig: { prebuiltVoiceConfig: { voiceName: speaker1Voice.value } } },
+                                            { speaker: speaker2, voiceConfig: { prebuiltVoiceConfig: { voiceName: speaker2Voice.value } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        };
+                    } else {
+                        // Single speaker if no specific speaker syntax is found
+                        payload = {
+                            contents: [{ parts: [{ text: text }] }],
+                            generationConfig: {
+                                responseModalities: ["AUDIO"],
+                                speechConfig: {
+                                    voiceConfig: {
+                                        prebuiltVoiceConfig: { voiceName: speaker1Voice.value }
+                                    }
+                                }
+                            }
+                        };
+                    }
 
                     try {
                         const response = await fetch(apiUrl, {
@@ -847,32 +900,81 @@ ${text}`;
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
-
                         if (!response.ok) {
                             const errorData = await response.json();
                             throw new Error(errorData.error.message || `API Error: ${response.status}`);
                         }
-
                         const result = await response.json();
-                        if (result.audioContent) {
-                            const audioBlob = base64ToBlob(result.audioContent, 'audio/mp3');
-                            const audioUrl = URL.createObjectURL(audioBlob);
+                        const part = result?.candidates?.[0]?.content?.parts?.[0];
+                        if (part && part.inlineData && part.inlineData.data) {
+                            const audioData = base64ToArrayBuffer(part.inlineData.data);
+                            const mimeType = part.inlineData.mimeType;
+                            const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                            const wavBlob = pcmToWav(audioData, sampleRate);
+                            const audioUrl = URL.createObjectURL(wavBlob);
                             narrationAudio.src = audioUrl;
                             narrationDownload.href = audioUrl;
-                            narrationDownload.download = 'narration.mp3';
+                            narrationDownload.download = 'narration.wav'; // Change to .wav
                             narrationDownload.classList.remove('hidden');
                             narrationStep4.classList.remove('hidden');
                         } else {
                             throw new Error('APIから音声データが返されませんでした。');
                         }
                     } catch (error) {
-                        showAlert(`音声変換エラー: ${error.message}\n\nヒント: Google Cloudプロジェクトで "Text-to-Speech API" が有効になっているか、APIキーの制限設定にサイトのURL（${window.location.origin}/*）が含まれているか確認してください。`);
+                        showAlert(`音声変換エラー: ${error.message}\n\nヒント: APIキーの権限、またはGemini 2.5 Flash Preview TTSモデルが利用可能か確認してください。`);
                     } finally {
                         hideLoader();
                     }
                 });
             }
-
+            // Helper function to convert base64 to ArrayBuffer
+            function base64ToArrayBuffer(base64) {
+                const binaryString = window.atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+            // Helper function to convert PCM to WAV format
+            function pcmToWav(pcmData, sampleRate) {
+                const pcm16 = new Int16Array(pcmData);
+                const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+                const view = new DataView(buffer);
+                let offset = 0;
+                const writeString = (str) => {
+                    for (let i = 0; i < str.length; i++) {
+                        view.setUint8(offset + i, str.charCodeAt(i));
+                    }
+                    offset += str.length;
+                };
+                const writeUint32 = (val) => {
+                    view.setUint32(offset, val, true);
+                    offset += 4;
+                };
+                const writeUint16 = (val) => {
+                    view.setUint16(offset, val, true);
+                    offset += 2;
+                };
+                writeString('RIFF');
+                writeUint32(36 + pcm16.length * 2);
+                writeString('WAVE');
+                writeString('fmt ');
+                writeUint32(16);
+                writeUint16(1);
+                writeUint16(1);
+                writeUint32(sampleRate);
+                writeUint32(sampleRate * 2);
+                writeUint16(2);
+                writeUint16(16);
+                writeString('data');
+                writeUint32(pcm16.length * 2);
+                for (let i = 0; i < pcm16.length; i++, offset += 2) {
+                    view.setInt16(offset, pcm16[i], true);
+                }
+                return new Blob([view], { type: 'audio/wav' });
+            }
 
             // Splitter Tool
             // No changes needed as this tool does not use a backend AI API.
