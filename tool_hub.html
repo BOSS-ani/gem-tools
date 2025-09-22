@@ -181,23 +181,16 @@
                           <div>
                               <h3 class="text-xl font-bold mb-2">生成された追加コンテンツ</h3>
                               <p class="text-gray-400 mb-4">ナレーション原稿とスライド化コードが生成されました。</p>
-                              <div class="space-y-6">
-                                  <div>
-                                      <h4 class="text-lg font-bold mb-2 text-indigo-400">ナレーション原稿</h4>
-                                      <div class="relative">
-                                          <textarea id="content-script-output" class="h-40 text-sm" readonly></textarea>
-                                          <button class="copy-button absolute top-2 right-2" data-target="content-script-output">コピー</button>
-                                      </div>
-                                  </div>
-                                  <div>
-                                      <h4 class="text-lg font-bold mb-2 text-indigo-400">スライド化コード (HTML/Reveal.js)</h4>
-                                       <div class="relative">
-                                           <textarea id="content-slide-output" class="h-40 text-sm" readonly></textarea>
-                                           <button class="copy-button absolute top-2 right-2" data-target="content-slide-output">コピー</button>
-                                       </div>
-                                   </div>
-                               </div>
-                                <span id="copy-content-feedback" class="mt-2 inline-block text-green-400 opacity-0 transition-opacity">コピーしました！</span>
+                              <div class="relative">
+                                  <textarea id="content-script-output" class="h-40 text-sm" readonly></textarea>
+                                  <button class="copy-button absolute top-2 right-2" data-target="content-script-output">コピー</button>
+                              </div>
+                                                             <div class="relative mt-6">
+                                  <h4 class="text-lg font-bold mb-2 text-indigo-400">スライド化コード (HTML/Reveal.js)</h4>
+                                  <textarea id="content-slide-output" class="h-40 text-sm" readonly></textarea>
+                                  <button class="copy-button absolute top-2 right-2" data-target="content-slide-output">コピー</button>
+                              </div>
+                              <span id="copy-content-feedback" class="mt-2 inline-block text-green-400 opacity-0 transition-opacity">コピーしました！</span>
                           </div>
                       </div>
                  </div>
@@ -767,7 +760,9 @@
 
                     try {
                         showLoader('ナレーション原稿を生成中...');
-                        const prompt = `あなたはコンテンツ制作の専門家です。以下のHTMLコンテンツを読み込み、ナレーション原稿として使えるように、簡潔で分かりやすい日本語のテキストに要約してください。HTMLタグや余分な記号はすべて削除してください。`;
+                        const prompt = `あなたはコンテンツ制作の専門家です。以下のHTMLコンテンツを読み込み、ナレーション原稿として使えるように、簡潔で分かりやすい日本語のテキストに要約してください。HTMLタグや余分な記号はすべて削除してください。
+                        
+${html}`;
                         const script = await callGeminiAPI(prompt);
                         contentScriptOutput.value = script;
                         step3Section.classList.remove('hidden');
